@@ -1,0 +1,229 @@
+use core::{cell::RefCell, sync::atomic::Ordering};
+
+use defmt::{debug, error, info, Format};
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
+use embassy_time::{Duration, Instant, Ticker};
+use enum_iterator::last;
+use esp_radio::esp_now::{
+    EspNowManager, EspNowReceiver, EspNowSender, PeerInfo, BROADCAST_ADDRESS,
+};
+use portable_atomic::AtomicU64;
+use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
+
+use crate::{
+    config::{MAX_MOVE_MM, MAX_NO_REMOTE_HEARTBEAT_MS, MOTION_CONTROL_MAX_VELOCITY},
+    motion::{set_motion_depth, set_motion_enabled, set_motion_length, set_motion_velocity},
+};
+
+const OSSM_ID: i32 = 1;
+const M5_ID: i32 = 99;
+
+static LAST_HEARTBEAT: AtomicU64 = AtomicU64::new(0);
+
+#[derive(Default, Format, TryFromBytes, IntoBytes, Immutable)]
+#[repr(i32)]
+enum M5Command {
+    Conn = 0,
+    Speed = 1,
+    Depth = 2,
+    Stroke = 3,
+    Sensation = 4,
+    Pattern = 5,
+    TorqueF = 6,
+    TorqueR = 7,
+    Off = 10,
+    On = 11,
+    SetupDI = 12,
+    SetupDIF = 13,
+    Reboot = 14,
+
+    CumSpeed = 20,
+    CumTime = 21,
+    CumSize = 22,
+    CumAccel = 23,
+
+    Connect = 88,
+
+    #[default]
+    Heartbeat = 99,
+}
+
+#[derive(Default, Format, TryFromBytes, IntoBytes, Immutable, KnownLayout)]
+#[repr(C)]
+struct M5Packet {
+    speed: f32,
+    depth: f32,
+    stroke: f32,
+    sensation: f32,
+    pattern: f32,
+    rstate: bool,
+    connected: bool,
+    heartbeat: bool,
+    _padding: bool,
+    command: M5Command,
+    value: f32,
+    target: i32,
+}
+
+impl M5Packet {
+    fn heartbeat_packet() -> Self {
+        let mut packet = M5Packet::default();
+        packet.connected = true;
+        packet.target = M5_ID;
+        packet.speed = MOTION_CONTROL_MAX_VELOCITY as f32;
+        packet.depth = MAX_MOVE_MM;
+        packet
+    }
+}
+
+async fn send_heartbeat_packet(
+    sender: &'static Mutex<NoopRawMutex, EspNowSender<'static>>,
+    peer: &PeerInfo,
+) {
+    let mut sender = sender.lock().await;
+    if let Err(err) = sender
+        .send_async(&peer.peer_address, M5Packet::heartbeat_packet().as_bytes())
+        .await
+    {
+        error!("Could not send the heartbeat packet {}", err);
+    } else {
+        info!("Sent heartbeat packet");
+    }
+}
+
+/// Task to get the motor packets and update the state
+#[embassy_executor::task]
+pub async fn m5_listener(
+    manager: &'static EspNowManager<'static>,
+    sender: &'static Mutex<NoopRawMutex, EspNowSender<'static>>,
+    mut receiver: EspNowReceiver<'static>,
+) {
+    info!("M5 Listener Started");
+
+    loop {
+        let r = receiver.receive_async().await;
+        // info!("Received {:?}", r);
+
+        let data = r.data();
+        let packet = match M5Packet::try_ref_from_bytes(data) {
+            Ok(packet) => packet,
+            Err(err) => {
+                error!(
+                    "Failed to parse the M5 Packet {:?}",
+                    defmt::Debug2Format(&err)
+                );
+                continue;
+            }
+        };
+
+        info!("M5 Packet {}", packet);
+
+        match packet.command {
+            M5Command::On => {
+                let mut packet = M5Packet::default();
+                packet.target = M5_ID;
+                packet.command = M5Command::On;
+                let peer = manager
+                    .fetch_peer(true)
+                    .expect("Peer not found even though packet received");
+                let mut sender = sender.lock().await;
+                sender
+                    .send_async(&peer.peer_address, packet.as_bytes())
+                    .await
+                    .expect("Could not send ON packet");
+                set_motion_enabled(true);
+            }
+            M5Command::Off => {
+                let mut packet = M5Packet::default();
+                packet.target = M5_ID;
+                packet.command = M5Command::Off;
+                let peer = manager
+                    .fetch_peer(true)
+                    .expect("Peer not found even though packet received");
+                let mut sender = sender.lock().await;
+                sender
+                    .send_async(&peer.peer_address, packet.as_bytes())
+                    .await
+                    .expect("Could not send OFF packet");
+                set_motion_enabled(false);
+            }
+            M5Command::Depth => {
+                set_motion_depth(packet.value as u32);
+            }
+            M5Command::Speed => {
+                set_motion_velocity(packet.value as u32);
+            }
+            M5Command::Stroke => {
+                set_motion_length(packet.value as u32);
+            }
+            M5Command::Heartbeat => {
+                let now = Instant::now().as_millis();
+                LAST_HEARTBEAT.store(now, Ordering::Release);
+            }
+            _ => {}
+        }
+
+        if packet.target == OSSM_ID {
+            if r.info.dst_address == BROADCAST_ADDRESS {
+                if !manager.peer_exists(&r.info.src_address) {
+                    let peer = PeerInfo {
+                        interface: esp_radio::esp_now::EspNowWifiInterface::Sta,
+                        peer_address: r.info.src_address,
+                        lmk: None,
+                        channel: None,
+                        encrypt: false,
+                    };
+                    manager.add_peer(peer).unwrap();
+                    info!("Added new peer {}", r.info.src_address);
+
+                    // Signal that we are paired
+                    send_heartbeat_packet(sender, &peer).await;
+                }
+            }
+        }
+    }
+}
+
+/// Task to check the heartbeats from the remote
+/// and shut the machine off
+#[embassy_executor::task]
+pub async fn m5_heartbeat_check() {
+    info!("M5 Heartbeat Check Started");
+
+    let mut ticker = Ticker::every(Duration::from_millis(1000));
+    loop {
+        let last_heartbeat = Instant::from_millis(LAST_HEARTBEAT.load(Ordering::Acquire));
+        let elapsed = last_heartbeat.elapsed().as_millis();
+
+        if elapsed > MAX_NO_REMOTE_HEARTBEAT_MS {
+            set_motion_enabled(false);
+        }
+
+        ticker.next().await;
+    }
+}
+
+/// Task to send heartbeats to the remote
+#[embassy_executor::task]
+pub async fn m5_heartbeat(
+    manager: &'static EspNowManager<'static>,
+    sender: &'static Mutex<NoopRawMutex, EspNowSender<'static>>,
+) {
+    info!("M5 Heartbeat Started");
+
+    let mut ticker = Ticker::every(Duration::from_millis(5000));
+
+    loop {
+        ticker.next().await;
+
+        let peer = match manager.fetch_peer(true) {
+            Ok(peer) => peer,
+            Err(_err) => {
+                // Peer not found
+                continue;
+            }
+        };
+
+        send_heartbeat_packet(sender, &peer).await;
+    }
+}
