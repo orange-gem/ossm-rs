@@ -64,7 +64,7 @@ async fn main(spawner: Spawner) {
     esp_alloc::heap_allocator!(size: 64 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
-    esp_preempt::init(timg0.timer0);
+    esp_preempt::start(timg0.timer0);
 
     let mut cpu_control = CpuControl::new(peripherals.CPU_CTRL);
 
@@ -96,7 +96,7 @@ async fn main(spawner: Spawner) {
     );
 
     let wifi = peripherals.WIFI;
-    let (mut controller, interfaces) = esp_radio::wifi::new(&esp_radio_ctrl, wifi).unwrap();
+    let (mut controller, interfaces) = esp_radio::wifi::new(&esp_radio_ctrl, wifi, Default::default()).unwrap();
     controller.set_mode(esp_radio::wifi::WifiMode::Sta).unwrap();
     controller.start().unwrap();
 

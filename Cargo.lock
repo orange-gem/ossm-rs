@@ -27,6 +27,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
+name = "base64"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
+
+[[package]]
 name = "basic-toml"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -52,7 +58,7 @@ checksum = "52511b09931f7d5fe3a14f23adefbc23e5725b184013e96c8419febb61f14734"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -69,9 +75,9 @@ checksum = "34efbcccd345379ca2868b2b2c9d3782e9cc58ba87bc7d79d5b53d9c9ae6f25d"
 
 [[package]]
 name = "bt-hci"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a496a585c0e2e00195e558af18342f79afd67598d3edb32e78c006e606a31386"
+checksum = "e9172c3df73e30f9bcbf80d0f5a4700fbc6d6771329142d05c06bb7ece7032c7"
 dependencies = [
  "btuuid",
  "defmt 1.0.1",
@@ -79,7 +85,7 @@ dependencies = [
  "embedded-io",
  "embedded-io-async",
  "futures-intrusive",
- "heapless 0.8.0",
+ "heapless 0.9.1",
 ]
 
 [[package]]
@@ -108,6 +114,12 @@ name = "cfg-if"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fd1289c04a9ea8cb22300a459a72a385d7c73d3259e2ed7dcb2af674838cfa9"
+
+[[package]]
+name = "const-default"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b396d1f76d455557e1218ec8066ae14bba60b4b36ecd55577ba979f5db7ecaa"
 
 [[package]]
 name = "critical-section"
@@ -156,7 +168,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "strsim",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -169,7 +181,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -180,7 +192,7 @@ checksum = "fc34b93ccb385b40dc71c6fceac4b2ad23662c7eeb248cf10d529b7e055b6ead"
 dependencies = [
  "darling_core 0.20.11",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -191,7 +203,7 @@ checksum = "d38308df82d1080de0afee5d069fa14b0326a88c14f15c5ccda35b4a6c414c81"
 dependencies = [
  "darling_core 0.21.3",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -223,7 +235,7 @@ dependencies = [
  "proc-macro-error2",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -243,7 +255,7 @@ checksum = "6178a82cf56c836a3ba61a7935cdb1c49bfaa6fa4327cd5bf554a503087de26b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -303,7 +315,7 @@ dependencies = [
  "darling 0.20.11",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -509,7 +521,7 @@ checksum = "a1ab991c1362ac86c61ab6f556cff143daa22e5a15e4e189df818b2fd19fe65b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -531,7 +543,7 @@ dependencies = [
  "darling 0.21.3",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -543,19 +555,23 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 [[package]]
 name = "esp-alloc"
 version = "0.8.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "allocator-api2",
  "cfg-if",
  "defmt 1.0.1",
  "document-features",
  "enumset",
+ "esp-config",
  "esp-sync",
  "linked_list_allocator",
+ "rlsf",
 ]
 
 [[package]]
 name = "esp-backtrace"
 version = "0.17.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -571,6 +587,7 @@ dependencies = [
 [[package]]
 name = "esp-bootloader-esp-idf"
 version = "0.2.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -584,6 +601,7 @@ dependencies = [
 [[package]]
 name = "esp-config"
 version = "0.5.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "document-features",
  "esp-metadata-generated",
@@ -595,6 +613,7 @@ dependencies = [
 [[package]]
 name = "esp-hal"
 version = "1.0.0-rc.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "bitfield",
  "bitflags 2.9.3",
@@ -637,6 +656,7 @@ dependencies = [
  "portable-atomic",
  "rand_core 0.6.4",
  "rand_core 0.9.3",
+ "riscv",
  "serde",
  "strum",
  "ufmt-write",
@@ -647,6 +667,7 @@ dependencies = [
 [[package]]
 name = "esp-hal-embassy"
 version = "0.9.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "cfg-if",
  "defmt 1.0.1",
@@ -669,6 +690,7 @@ dependencies = [
 [[package]]
 name = "esp-hal-procmacros"
 version = "0.19.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "document-features",
  "litrs",
@@ -676,13 +698,14 @@ dependencies = [
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
  "termcolor",
 ]
 
 [[package]]
 name = "esp-metadata"
 version = "0.8.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "anyhow",
  "basic-toml",
@@ -696,13 +719,28 @@ dependencies = [
 [[package]]
 name = "esp-metadata-generated"
 version = "0.1.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "esp-metadata",
 ]
 
 [[package]]
+name = "esp-phy"
+version = "0.0.1"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+dependencies = [
+ "cfg-if",
+ "esp-config",
+ "esp-hal",
+ "esp-metadata-generated",
+ "esp-sync",
+ "esp-wifi-sys",
+]
+
+[[package]]
 name = "esp-preempt"
 version = "0.0.1"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "allocator-api2",
  "cfg-if",
@@ -720,6 +758,7 @@ dependencies = [
 [[package]]
 name = "esp-println"
 version = "0.15.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "defmt 1.0.1",
  "document-features",
@@ -732,6 +771,7 @@ dependencies = [
 [[package]]
 name = "esp-radio"
 version = "0.15.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "allocator-api2",
  "bt-hci",
@@ -747,6 +787,7 @@ dependencies = [
  "esp-hal",
  "esp-hal-procmacros",
  "esp-metadata-generated",
+ "esp-phy",
  "esp-radio-preempt-driver",
  "esp-sync",
  "esp-wifi-sys",
@@ -763,10 +804,12 @@ dependencies = [
 [[package]]
 name = "esp-radio-preempt-driver"
 version = "0.0.1"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 
 [[package]]
 name = "esp-riscv-rt"
 version = "0.12.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "defmt 1.0.1",
  "document-features",
@@ -777,6 +820,7 @@ dependencies = [
 [[package]]
 name = "esp-rom-sys"
 version = "0.1.1"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -786,6 +830,7 @@ dependencies = [
 [[package]]
 name = "esp-sync"
 version = "0.0.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "cfg-if",
  "defmt 1.0.1",
@@ -812,12 +857,12 @@ dependencies = [
 
 [[package]]
 name = "esp-wifi-sys"
-version = "0.7.1"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6b5438361891c431970194a733415006fb3d00b6eb70b3dcb66fd58f04d9b39"
+checksum = "89b6544f6f0cb86169d1f93ba2101a8d50358a040c5043676ed86b793e09b12c"
 dependencies = [
  "anyhow",
- "defmt 0.3.100",
+ "defmt 1.0.1",
 ]
 
 [[package]]
@@ -1044,7 +1089,7 @@ dependencies = [
  "indoc",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -1074,8 +1119,14 @@ checksum = "03343451ff899767262ec32146f6d559dd759fdadf42ff0e227c7c48f72594b4"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
+
+[[package]]
+name = "libc"
+version = "0.2.175"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a82ae493e598baaea5209805c49bbf2ea7de956d50d7da0da1164f9c6d28543"
 
 [[package]]
 name = "libm"
@@ -1149,7 +1200,7 @@ checksum = "ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -1252,7 +1303,7 @@ checksum = "a33fa6ec7f2047f572d49317cca19c87195de99c6e5b6ee492da701cfe02b053"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -1283,7 +1334,7 @@ dependencies = [
  "proc-macro-error-attr2",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -1303,12 +1354,6 @@ checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
 dependencies = [
  "proc-macro2",
 ]
-
-[[package]]
-name = "r0"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd7a31eed1591dcbc95d92ad7161908e72f4677f8fabf2a32ca49b4237cbf211"
 
 [[package]]
 name = "ral-registers"
@@ -1349,7 +1394,7 @@ checksum = "7d323d13972c1b104aa036bc692cd08b822c8bbf23d79a27c526095856499799"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -1379,7 +1424,7 @@ checksum = "15c3138fdd8d128b2d81829842a3e0ce771b3712f7b6318ed1476b0695e7d330"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -1387,6 +1432,18 @@ name = "riscv-target-parser"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb12701a0129e07776b285c3fbde53166e6c49c350187adf793c1d7e1dc64355"
+
+[[package]]
+name = "rlsf"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "222fb240c3286247ecdee6fa5341e7cdad0ffdf8e7e401d9937f2d58482a20bf"
+dependencies = [
+ "cfg-if",
+ "const-default",
+ "libc",
+ "svgbobdoc",
+]
 
 [[package]]
 name = "rmodbus"
@@ -1442,7 +1499,7 @@ checksum = "5b0276cf7f2c73365f7157c8123c21cd9a50fbbd844757af28ca1f5925fc2a00"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -1527,7 +1584,31 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
+]
+
+[[package]]
+name = "svgbobdoc"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2c04b93fc15d79b39c63218f15e3fdffaa4c227830686e3b7c5f41244eb3e50"
+dependencies = [
+ "base64",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+ "unicode-width",
+]
+
+[[package]]
+name = "syn"
+version = "1.0.109"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
 ]
 
 [[package]]
@@ -1567,7 +1648,7 @@ checksum = "6c5e1be1c48b9172ee610da68fd9cd2770e7a4056cb3fc98710ee6906f0c7960"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -1604,6 +1685,12 @@ name = "unicode-ident"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a5f39404a5da50712a4c1eecf25e90dd62b613502b7e925fd4e4d19b5c96512"
+
+[[package]]
+name = "unicode-width"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
 
 [[package]]
 name = "unsafe-libyaml"
@@ -1740,6 +1827,7 @@ dependencies = [
 [[package]]
 name = "xtensa-lx"
 version = "0.12.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "critical-section",
 ]
@@ -1747,10 +1835,10 @@ dependencies = [
 [[package]]
 name = "xtensa-lx-rt"
 version = "0.20.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "defmt 1.0.1",
  "document-features",
- "r0",
  "xtensa-lx",
  "xtensa-lx-rt-proc-macros",
 ]
@@ -1758,10 +1846,11 @@ dependencies = [
 [[package]]
 name = "xtensa-lx-rt-proc-macros"
 version = "0.4.0"
+source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -1781,5 +1870,5 @@ checksum = "88d2b8d9c68ad2b9e4340d7832716a4d21a22a1154777ad56ea55c51a9cf3831"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.106",
 ]
