@@ -1457,7 +1457,8 @@ dependencies = [
 
 [[package]]
 name = "rsruckig"
-version = "2.0.1"
+version = "2.1.0"
+source = "git+https://github.com/petrikosk/rsruckig.git#4e2a339458889ddc5a6432de77033d3bd5cb87fb"
 dependencies = [
  "arrayvec",
  "num-traits",
