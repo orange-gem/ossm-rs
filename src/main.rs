@@ -6,6 +6,7 @@
     holding buffers for the duration of a data transfer."
 )]
 
+mod board;
 mod config;
 mod m5_remote;
 mod motion;
@@ -14,6 +15,7 @@ mod motor;
 
 use core::ptr::addr_of_mut;
 
+use crate::board::Pins;
 use crate::m5_remote::{m5_heartbeat, m5_heartbeat_check, m5_listener};
 use crate::motion::{run_motion, set_motor_settings, wait_for_home};
 use crate::motion_control::MotionControl;
@@ -22,6 +24,7 @@ use defmt::info;
 use embassy_executor::Spawner;
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Timer};
+use esp_hal::gpio::Pin;
 use esp_hal::system::{CpuControl, Stack};
 use esp_hal::{
     clock::CpuClock,
@@ -56,10 +59,28 @@ macro_rules! mk_static {
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
-    // generator version: 0.5.0
-
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
+
+    #[cfg(feature = "board_custom")]
+    let pins = {
+        info!("Board: custom");
+        Pins {
+            rs485_rx: peripherals.GPIO35.degrade(),
+            rs485_tx: peripherals.GPIO37.degrade(),
+            rs485_dtr: Some(peripherals.GPIO36.degrade()),
+        }
+    };
+
+    #[cfg(feature = "board_waveshare")]
+    let pins = {
+        info!("Board: WaveShare");
+        Pins {
+            rs485_rx: peripherals.GPIO18.degrade(),
+            rs485_tx: peripherals.GPIO17.degrade(),
+            rs485_dtr: Some(peripherals.GPIO21.degrade()),
+        }
+    };
 
     esp_alloc::heap_allocator!(size: 64 * 1024);
 
@@ -73,11 +94,14 @@ async fn main(spawner: Spawner) {
         .with_rx(rs485_rx_confg)
         .with_baudrate(19200);
 
-    let rs485 = Uart::new(peripherals.UART1, rs485_config)
+    let mut rs485 = Uart::new(peripherals.UART1, rs485_config)
         .expect("Failed to initialise RS485")
-        .with_rx(peripherals.GPIO35)
-        .with_tx(peripherals.GPIO37)
-        .with_dtr(peripherals.GPIO36);
+        .with_rx(pins.rs485_rx)
+        .with_tx(pins.rs485_tx);
+
+    if let Some(dtr) = pins.rs485_dtr {
+        rs485 = rs485.with_dtr(dtr);
+    }
 
     unsafe {
         let rs = Peripherals::steal().UART1;
@@ -96,7 +120,8 @@ async fn main(spawner: Spawner) {
     );
 
     let wifi = peripherals.WIFI;
-    let (mut controller, interfaces) = esp_radio::wifi::new(&esp_radio_ctrl, wifi, Default::default()).unwrap();
+    let (mut controller, interfaces) =
+        esp_radio::wifi::new(&esp_radio_ctrl, wifi, Default::default()).unwrap();
     controller.set_mode(esp_radio::wifi::WifiMode::Sta).unwrap();
     controller.start().unwrap();
 

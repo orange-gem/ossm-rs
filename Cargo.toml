@@ -70,6 +70,11 @@ rsruckig = { default-features = false, features = [
     "alloc",
 ], git = "https://github.com/petrikosk/rsruckig.git" }
 
+[features]
+default= ["board_waveshare"]
+board_custom = []
+board_waveshare = []
+
 
 [profile.release]
 codegen-units = 1        # LLVM can perform better optimizations using a single thread
