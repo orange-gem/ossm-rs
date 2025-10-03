@@ -134,7 +134,7 @@ impl PatternExecutor {
         for (i, pattern) in self.patterns.iter().enumerate() {
             if let Some(pattern) = pattern {
                 let name = pattern.get_name();
-                if write!(output, r#"{{"name":"{}","idx":{}}},"#, name, i).is_err() {
+                if write!(output, r#"{{"name":"{name}","idx":{i}}},"#).is_err() {
                     error!("Overflow. Returning unfinished string");
                     break;
                 }

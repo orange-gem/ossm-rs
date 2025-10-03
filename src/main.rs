@@ -135,7 +135,7 @@ async fn main(spawner: Spawner) {
 
     let wifi = peripherals.WIFI;
     let (mut wifi_controller, interfaces) =
-        esp_radio::wifi::new(&radio, wifi, Default::default()).unwrap();
+        esp_radio::wifi::new(radio, wifi, Default::default()).unwrap();
     wifi_controller
         .set_mode(esp_radio::wifi::WifiMode::Sta)
         .unwrap();

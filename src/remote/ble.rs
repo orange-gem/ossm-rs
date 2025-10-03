@@ -8,8 +8,7 @@ use trouble_host::prelude::*;
 use crate::{
     config::{MAX_MOVE_MM, MOTION_CONTROL_MAX_VELOCITY, MOTION_CONTROL_MIN_VELOCITY},
     motion::{
-        set_motion_depth, set_motion_length, set_motion_pattern, set_motion_sensation,
-        set_motion_velocity,
+        set_motion_depth, set_motion_enabled, set_motion_length, set_motion_pattern, set_motion_sensation, set_motion_velocity
     },
     pattern::{PatternExecutor, MAX_SENSATION, MIN_SENSATION},
     utils::scale,
@@ -154,6 +153,8 @@ async fn advertise<'values, 'server, C: Controller>(
 }
 
 fn process_command(command: &String<MAX_COMMAND_LENGTH>, server: &Server<'_>) {
+    info!("BLE Command {}", command);
+
     let mut split_command = command.split(":");
 
     let mut fail = false;
@@ -193,7 +194,7 @@ fn process_command(command: &String<MAX_COMMAND_LENGTH>, server: &Server<'_>) {
                                     set_motion_pattern(value as u32);
                                 }
                                 _ => {
-                                    error!("Invalid set command");
+                                    error!("Invalid set command {}", action);
                                     fail = true;
                                 }
                             }
@@ -206,7 +207,23 @@ fn process_command(command: &String<MAX_COMMAND_LENGTH>, server: &Server<'_>) {
                         fail = true;
                     }
                 }
-                "go" => {}
+                "go" => {
+                    match action {
+                        "simplePenetration" => {
+                            set_motion_enabled(true);
+                        }
+                        "strokeEngine" => {
+                            set_motion_enabled(true);
+                        }
+                        "menu" => {
+                            set_motion_enabled(false);
+                        }
+                        _ => {
+                            error!("Invalid go command {}", action);
+                            fail = true;
+                        }
+                    }
+                }
                 _ => {
                     error!("Command neither set nor go");
                     fail = true;
@@ -224,14 +241,14 @@ fn process_command(command: &String<MAX_COMMAND_LENGTH>, server: &Server<'_>) {
     let mut response_str: String<MAX_COMMAND_LENGTH> = String::new();
     if fail {
         response_str.write_str("fail:").expect("Should always fit");
-        if let Err(_) = response_str.write_str(command.as_str()) {
+        if response_str.write_str(command.as_str()).is_err() {
             response_str
                 .write_str("overflow")
                 .expect("Should always fit");
         }
     } else {
         response_str.write_str("ok:").expect("Should always fit");
-        if let Err(_) = response_str.write_str(command.as_str()) {
+        if  response_str.write_str(command.as_str()).is_err() {
             response_str
                 .write_str("overflow")
                 .expect("Should always fit");
