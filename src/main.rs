@@ -8,15 +8,19 @@
 
 mod board;
 mod config;
-mod m5_remote;
 mod motion;
 mod motion_control;
 mod motor;
 mod pattern;
+mod remote;
 mod utils;
 
 use crate::board::Pins;
-use crate::m5_remote::{m5_heartbeat, m5_heartbeat_check, m5_listener};
+use crate::remote::{
+    ble::{ble_events, ble_task},
+    esp_now::{m5_heartbeat, m5_heartbeat_check, m5_listener},
+};
+
 use crate::motion::{run_motion, set_motor_settings, wait_for_home};
 use crate::motion_control::MotionControl;
 use crate::motor::{Motor, ReadOnlyMotorRegisters, ReadWriteMotorRegisters};
@@ -42,8 +46,10 @@ use esp_radio::{
 };
 use esp_rtos::embassy::InterruptExecutor;
 use static_cell::StaticCell;
-use trouble_host::prelude::{DefaultPacketPool, ExternalController};
-use trouble_host::HostResources;
+use trouble_host::{
+    prelude::{DefaultPacketPool, ExternalController},
+    Host, HostResources,
+};
 
 use {esp_backtrace as _, esp_println as _};
 
@@ -148,9 +154,20 @@ async fn main(spawner: Spawner) {
     let bluetooth = peripherals.BT;
     let connector = BleConnector::new(radio, bluetooth, Default::default());
     let bt_controller: ExternalController<_, 20> = ExternalController::new(connector);
-    let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
-        HostResources::new();
-    let stack = trouble_host::new(bt_controller, &mut resources);
+
+    let resources = mk_static!(HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX>, HostResources::new());
+    let stack = mk_static!(
+        trouble_host::Stack<
+            'static,
+            ExternalController<BleConnector<'static>, 20>,
+            DefaultPacketPool,
+        >,
+        trouble_host::new(bt_controller, resources)
+    );
+
+    let Host {
+        peripheral, runner, ..
+    } = stack.build();
 
     info!("Embassy initialized!");
 
@@ -202,6 +219,9 @@ async fn main(spawner: Spawner) {
     spawner.spawn(m5_listener(manager, sender, receiver)).ok();
     spawner.spawn(m5_heartbeat(manager, sender)).ok();
     spawner.spawn(m5_heartbeat_check()).ok();
+
+    spawner.spawn(ble_task(runner)).ok();
+    spawner.spawn(ble_events(peripheral)).ok();
 
     loop {
         // ESP-NOW does not work without this
