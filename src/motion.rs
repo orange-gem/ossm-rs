@@ -1,4 +1,4 @@
-use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering};
 
 use defmt::info;
 use embassy_time::{Duration, Ticker, Timer};
@@ -9,11 +9,14 @@ use crate::{
     config::{MAX_MOVE_MM, RETRACT_VELOCITY, REVERSE_DIRECTION},
     motion_control::MotionControl,
     motor::{Motor, MAX_MOTOR_SPEED_RPM},
+    pattern::{Pattern, PatternExecutor, PatternInput, PatternMove, MAX_SENSATION, MIN_SENSATION},
 };
 
-static MOTION_LENGTH: AtomicU32 = AtomicU32::new(0);
 static DEPTH: AtomicU32 = AtomicU32::new(0);
+static MOTION_LENGTH: AtomicU32 = AtomicU32::new(0);
 static VELOCITY: AtomicU32 = AtomicU32::new(0);
+static SENSATION: AtomicI32 = AtomicI32::new(0);
+static PATTERN: AtomicU32 = AtomicU32::new(0);
 static MOTION_ENABLED: AtomicBool = AtomicBool::new(false);
 
 /// Set the default motor settings
@@ -58,9 +61,12 @@ pub async fn wait_for_home(motor: &mut Motor) {
 
 #[embassy_executor::task]
 pub async fn run_motion() {
-    let mut ticker = Ticker::every(Duration::from_millis(10));
-    let mut out_stroke = true;
+    let mut ticker = Ticker::every(Duration::from_millis(1));
     let mut prev_motion_enabled = false;
+
+    let mut pattern_executor = PatternExecutor::new();
+    let mut prev_pattern: u32 = 0;
+    let mut pattern_move = PatternMove::default();
 
     info!("Motion started");
 
@@ -78,30 +84,39 @@ pub async fn run_motion() {
             // Restore the previous velocity
             let velocity = VELOCITY.load(Ordering::Acquire);
             MotionControl::set_max_velocity(velocity as f64);
-            out_stroke = true;
         }
 
         if !MotionControl::is_move_in_progress() && motion_enabled {
-            let out_stroke_depth = DEPTH.load(Ordering::Acquire) as f64;
+            // Apply the delay from the previous move before executing the next one
+            Timer::after_millis(pattern_move.delay_ms).await;
 
-            let length = MOTION_LENGTH.load(Ordering::Acquire) as f64;
-            let mut in_stroke_depth = out_stroke_depth - length;
+            let depth = DEPTH.load(Ordering::Acquire) as f64;
+            let motion_length = MOTION_LENGTH.load(Ordering::Acquire) as f64;
+            let velocity = VELOCITY.load(Ordering::Acquire) as f64;
+            let sensation = SENSATION.load(Ordering::Acquire) as f64;
+            let pattern = PATTERN.load(Ordering::Acquire);
 
-            if in_stroke_depth < 0.0 {
-                in_stroke_depth = 0.0;
+            if pattern != prev_pattern {
+                pattern_executor.set_pattern(pattern);
+                prev_pattern = pattern;
             }
 
-            if out_stroke {
-                MotionControl::set_target_position(out_stroke_depth);
-                // info!("OUT");
-            } else {
-                MotionControl::set_target_position(in_stroke_depth);
-                // info!("IN");
+            let input = PatternInput {
+                velocity,
+                depth,
+                motion_length,
+                sensation,
+            };
+
+            pattern_move = pattern_executor.next_move(&input);
+
+            if pattern_move.position < 0.0 {
+                pattern_move.position = 0.0;
             }
-            out_stroke = !out_stroke;
+            MotionControl::set_max_velocity(pattern_move.velocity);
+            MotionControl::set_target_position(pattern_move.position);
         }
         ticker.next().await;
-        // Timer::after(Duration::from_millis(10)).await;
 
         prev_motion_enabled = motion_enabled;
     }
@@ -124,6 +139,22 @@ pub fn set_motion_depth(mut depth: u32) {
 pub fn set_motion_velocity(velocity: u32) {
     VELOCITY.store(velocity, Ordering::Release);
     MotionControl::set_max_velocity(velocity as f64);
+}
+
+/// Set the motion velocity in mm/s
+pub fn set_motion_sensation(mut sensation: i32) {
+    if (sensation as f64) > MAX_SENSATION {
+        sensation = MAX_SENSATION.floor() as i32;
+    }
+    if (sensation as f64) < MIN_SENSATION {
+        sensation = MIN_SENSATION.ceil() as i32;
+    }
+
+    SENSATION.store(sensation, Ordering::Release);
+}
+
+pub fn set_motion_pattern(index: u32) {
+    PATTERN.store(index, Ordering::Release);
 }
 
 pub fn set_motion_enabled(enabled: bool) {

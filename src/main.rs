@@ -6,12 +6,14 @@
     holding buffers for the duration of a data transfer."
 )]
 
+mod utils;
 mod board;
 mod config;
 mod m5_remote;
 mod motion;
 mod motion_control;
 mod motor;
+mod pattern;
 
 use core::ptr::addr_of_mut;
 

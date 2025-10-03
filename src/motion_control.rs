@@ -1,16 +1,15 @@
 use core::{
     cell::RefCell,
-    cmp::max,
     panic,
     sync::atomic::{AtomicBool, Ordering},
 };
 
 use critical_section::Mutex;
-use defmt::{error, info};
+use defmt::error;
 use esp_hal::{handler, time::Instant, timer::PeriodicTimer, Blocking};
 use rsruckig::prelude::*;
 
-use crate::{config::*, motion, motor::Motor};
+use crate::{config::*, motor::Motor};
 
 static UPDATE_TIMER: Mutex<RefCell<Option<PeriodicTimer<'static, Blocking>>>> =
     Mutex::new(RefCell::new(None));

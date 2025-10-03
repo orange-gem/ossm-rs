@@ -1,9 +1,8 @@
-use core::{cell::RefCell, sync::atomic::Ordering};
+use core::sync::atomic::Ordering;
 
-use defmt::{debug, error, info, Format};
+use defmt::{error, info, Format};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Instant, Ticker};
-use enum_iterator::last;
 use esp_radio::esp_now::{
     EspNowManager, EspNowReceiver, EspNowSender, PeerInfo, BROADCAST_ADDRESS,
 };
@@ -12,7 +11,10 @@ use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
 
 use crate::{
     config::{MAX_MOVE_MM, MAX_NO_REMOTE_HEARTBEAT_MS, MOTION_CONTROL_MAX_VELOCITY},
-    motion::{set_motion_depth, set_motion_enabled, set_motion_length, set_motion_velocity},
+    motion::{
+        set_motion_depth, set_motion_enabled, set_motion_length, set_motion_pattern,
+        set_motion_sensation, set_motion_velocity,
+    },
 };
 
 const OSSM_ID: i32 = 1;
@@ -22,6 +24,8 @@ static LAST_HEARTBEAT: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Default, Format, TryFromBytes, IntoBytes, Immutable)]
 #[repr(i32)]
+// The commands are not constructed
+#[allow(dead_code)]
 enum M5Command {
     Conn = 0,
     Speed = 1,
@@ -147,14 +151,20 @@ pub async fn m5_listener(
                     .expect("Could not send OFF packet");
                 set_motion_enabled(false);
             }
-            M5Command::Depth => {
-                set_motion_depth(packet.value as u32);
-            }
             M5Command::Speed => {
                 set_motion_velocity(packet.value as u32);
             }
+            M5Command::Depth => {
+                set_motion_depth(packet.value as u32);
+            }
             M5Command::Stroke => {
                 set_motion_length(packet.value as u32);
+            }
+            M5Command::Sensation => {
+                set_motion_sensation(packet.value as i32);
+            }
+            M5Command::Pattern => {
+                set_motion_pattern(packet.value as u32);
             }
             M5Command::Heartbeat => {
                 let now = Instant::now().as_millis();

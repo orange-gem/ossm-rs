@@ -64,9 +64,31 @@ Feature flag: `board_custom`
 
 Set pins in `main.rs` manually
 
+## Patterns
+
+### Default Patterns
+
+The following patterns are supported:
+
+- Simple,
+- TeasingPounding,
+- HalfHalf,
+- Deeper,
+- StopNGo,
+
+They are designed to closely mimic the patterns provided by the stock OSSM firmware.
+
+### Making Custom Patterns
+
+The list of patterns is stored under `pattern/mod.rs`
+
+The easiest way to create your own is to copy, rename and modify one of the existing patterns in the `pattern` directory.
+Don't forget to add it to `pattern/mod.rs` as well.
+
+For details see the documentation of the `Pattern` trait and the related structs (`PatternInput` and `PatternMove`)
 
 ## Roadmap
 
 - [x] Off-the-shelf control board support
-- [ ] Patterns
+- [x] Patterns
 - [ ] R&D wireless remote support

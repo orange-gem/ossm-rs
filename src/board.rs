@@ -1,6 +1,4 @@
-use esp_hal::{
-    gpio::{AnyPin, Pin},
-};
+use esp_hal::gpio::AnyPin;
 
 pub struct Pins {
     pub rs485_rx: AnyPin<'static>,

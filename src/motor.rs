@@ -1,4 +1,4 @@
-use defmt::{error, info};
+use defmt::error;
 use embedded_io::{Read, Write};
 use enum_iterator::Sequence;
 use esp_hal::{timer::OneShotTimer, uart::Uart, Blocking};
