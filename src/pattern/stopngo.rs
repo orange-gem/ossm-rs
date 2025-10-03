@@ -11,6 +11,7 @@ const MAX_STROKES: usize = 5;
 const MIN_DELAY_MS: f64 = 100.0;
 const MAX_DELAY_MS: f64 = 10000.0;
 
+#[derive(Default)]
 pub struct StopNGo {
     out_stroke: bool,
     num_strokes: usize,
@@ -21,17 +22,25 @@ pub struct StopNGo {
 
 impl StopNGo {
     pub fn new() -> Self {
-        Self {
-            out_stroke: true,
-            num_strokes: 1,
-            current_stroke: 1,
-            counting_up: true,
-            previous_sensation: 0.0,
-        }
+        let mut pattern = Self::default();
+        pattern.reset();
+        pattern
     }
 }
 
 impl Pattern for StopNGo {
+    fn get_name(&self) -> &'static str {
+        "Stop'n'Go"
+    }
+
+    fn reset(&mut self) {
+        self.out_stroke = true;
+        self.num_strokes = 1;
+        self.current_stroke = 1;
+        self.counting_up = true;
+        self.previous_sensation = 0.0;
+    }
+
     fn next_move(&mut self, input: &PatternInput) -> PatternMove {
         // Reset the strokes if sensation changes
         if input.sensation != self.previous_sensation {

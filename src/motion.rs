@@ -98,6 +98,7 @@ pub async fn run_motion() {
 
             if pattern != prev_pattern {
                 pattern_executor.set_pattern(pattern);
+                pattern_executor.reset();
                 prev_pattern = pattern;
             }
 

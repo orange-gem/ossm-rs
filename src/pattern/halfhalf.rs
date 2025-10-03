@@ -2,6 +2,7 @@ use crate::utils::scale;
 
 use super::{Pattern, PatternInput, PatternMove, MAX_SENSATION};
 
+#[derive(Default)]
 pub struct HalfHalf {
     out_stroke: bool,
     half: bool,
@@ -9,14 +10,22 @@ pub struct HalfHalf {
 
 impl HalfHalf {
     pub fn new() -> Self {
-        Self {
-            out_stroke: true,
-            half: false,
-        }
+        let mut pattern = Self::default();
+        pattern.reset();
+        pattern
     }
 }
 
 impl Pattern for HalfHalf {
+    fn get_name(&self) -> &'static str {
+        "Half'n'Half"
+    }
+
+    fn reset(&mut self) {
+        self.out_stroke = true;
+        self.half = false;
+    }
+
     fn next_move(&mut self, input: &PatternInput) -> PatternMove {
         let max_scaling_factor = 5.0;
         let cut_velocity = input.velocity / max_scaling_factor;

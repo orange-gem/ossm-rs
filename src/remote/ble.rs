@@ -2,7 +2,7 @@ use core::fmt::Write;
 
 use defmt::{error, info};
 use esp_radio::ble::controller::BleConnector;
-use heapless::{String, Vec};
+use heapless::String;
 use trouble_host::prelude::*;
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
         set_motion_depth, set_motion_length, set_motion_pattern, set_motion_sensation,
         set_motion_velocity,
     },
-    pattern::{MAX_SENSATION, MIN_SENSATION},
+    pattern::{PatternExecutor, MAX_SENSATION, MIN_SENSATION},
     utils::scale,
 };
 
@@ -27,11 +27,11 @@ struct OssmService {
     #[characteristic(uuid = "522b443a-4f53-534d-0002-420badbabe69", read, write)]
     primary_command: String<MAX_COMMAND_LENGTH>,
     #[characteristic(uuid = "522b443a-4f53-534d-0010-420badbabe69", read, write)]
-    speed_knob_characteristic: Vec<u8, 16>,
+    speed_knob_characteristic: String<16>,
     #[characteristic(uuid = "522b443a-4f53-534d-1000-420badbabe69", read, notify)]
-    current_state: Vec<u8, 32>,
+    current_state: String<32>,
     #[characteristic(uuid = "522b443a-4f53-534d-2000-420badbabe69", read)]
-    pattern_list: Vec<u8, 128>,
+    pattern_list: String<256>,
 }
 
 #[embassy_executor::task]
@@ -85,7 +85,12 @@ async fn gatt_events_task<P: PacketPool>(
                 let mut write = false;
                 let mut event_handle = 0;
                 match &event {
-                    GattEvent::Read(event) => {}
+                    GattEvent::Read(event) => {
+                        if event.handle() == server.ossm_service.pattern_list.handle {
+                            let patterns = PatternExecutor::new().get_all_patterns_json();
+                            server.set(&server.ossm_service.pattern_list, &patterns)?;
+                        }
+                    }
                     GattEvent::Write(event) => {
                         write = true;
                         event_handle = event.handle();

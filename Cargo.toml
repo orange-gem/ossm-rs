@@ -70,7 +70,6 @@ rmodbus = { version = "0.12.2", default-features = false, features = [
     "heapless",
 ] }
 enum-iterator = "2.1.0"
-
 rsruckig = { default-features = false, features = [
     "libm",
     "alloc",
