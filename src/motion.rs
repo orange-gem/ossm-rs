@@ -61,14 +61,14 @@ pub async fn wait_for_home(motor: &mut Motor) {
 
 #[embassy_executor::task]
 pub async fn run_motion() {
-    let mut ticker = Ticker::every(Duration::from_millis(1));
+    let mut ticker = Ticker::every(Duration::from_millis(30));
     let mut prev_motion_enabled = false;
 
     let mut pattern_executor = PatternExecutor::new();
     let mut prev_pattern: u32 = 0;
     let mut pattern_move = PatternMove::default();
 
-    info!("Motion started");
+    info!("Task Motion Started");
 
     loop {
         let motion_enabled = MOTION_ENABLED.load(Ordering::Acquire);

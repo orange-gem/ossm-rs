@@ -75,9 +75,9 @@ checksum = "34efbcccd345379ca2868b2b2c9d3782e9cc58ba87bc7d79d5b53d9c9ae6f25d"
 
 [[package]]
 name = "bt-hci"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9172c3df73e30f9bcbf80d0f5a4700fbc6d6771329142d05c06bb7ece7032c7"
+checksum = "bb938a3b4c5cc6c2409275bad789c0346a0495fa071a0acc5d72b9bd3175a2f7"
 dependencies = [
  "btuuid",
  "defmt 1.0.1",
@@ -95,7 +95,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0acfef8a77a02866e04f7e2ad3f4c7b32d575696c49c4bbad742b4aecb8e4a3"
 dependencies = [
  "defmt 0.3.100",
+ "uuid",
 ]
+
+[[package]]
+name = "bumpalo"
+version = "3.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46c5e41b57b8bba42a04676d81cb89e9ee8e859a1a66f80a5a72e1cb76b34d43"
 
 [[package]]
 name = "bytemuck"
@@ -120,6 +127,15 @@ name = "const-default"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b396d1f76d455557e1218ec8066ae14bba60b4b36ecd55577ba979f5db7ecaa"
+
+[[package]]
+name = "convert_case"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baaaa0ecca5b51987b9423ccdc971514dd8b0bb7b4060b983d3664dad3f1f89f"
+dependencies = [
+ "unicode-segmentation",
+]
 
 [[package]]
 name = "critical-section"
@@ -567,7 +583,7 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 [[package]]
 name = "esp-alloc"
 version = "0.8.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "allocator-api2",
  "cfg-if",
@@ -583,7 +599,7 @@ dependencies = [
 [[package]]
 name = "esp-backtrace"
 version = "0.17.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -599,7 +615,7 @@ dependencies = [
 [[package]]
 name = "esp-bootloader-esp-idf"
 version = "0.2.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -613,7 +629,7 @@ dependencies = [
 [[package]]
 name = "esp-config"
 version = "0.5.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "document-features",
  "esp-metadata-generated",
@@ -625,7 +641,7 @@ dependencies = [
 [[package]]
 name = "esp-hal"
 version = "1.0.0-rc.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "bitfield",
  "bitflags 2.9.3",
@@ -677,32 +693,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "esp-hal-embassy"
-version = "0.9.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
-dependencies = [
- "cfg-if",
- "defmt 1.0.1",
- "document-features",
- "embassy-executor",
- "embassy-executor-timer-queue",
- "embassy-sync 0.7.2",
- "embassy-time-driver",
- "embassy-time-queue-utils",
- "esp-config",
- "esp-hal",
- "esp-hal-procmacros",
- "esp-metadata-generated",
- "esp-sync",
- "portable-atomic",
- "riscv",
- "static_cell",
-]
-
-[[package]]
 name = "esp-hal-procmacros"
 version = "0.19.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "document-features",
  "litrs",
@@ -717,7 +710,7 @@ dependencies = [
 [[package]]
 name = "esp-metadata"
 version = "0.8.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "anyhow",
  "basic-toml",
@@ -731,7 +724,7 @@ dependencies = [
 [[package]]
 name = "esp-metadata-generated"
 version = "0.1.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "esp-metadata",
 ]
@@ -739,7 +732,7 @@ dependencies = [
 [[package]]
 name = "esp-phy"
 version = "0.0.1"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "cfg-if",
  "esp-config",
@@ -750,27 +743,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "esp-preempt"
-version = "0.0.1"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
-dependencies = [
- "allocator-api2",
- "cfg-if",
- "defmt 1.0.1",
- "document-features",
- "esp-alloc",
- "esp-config",
- "esp-hal",
- "esp-metadata-generated",
- "esp-radio-preempt-driver",
- "esp-sync",
- "portable-atomic",
-]
-
-[[package]]
 name = "esp-println"
 version = "0.15.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "defmt 1.0.1",
  "document-features",
@@ -783,7 +758,7 @@ dependencies = [
 [[package]]
 name = "esp-radio"
 version = "0.15.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "allocator-api2",
  "bt-hci",
@@ -800,7 +775,7 @@ dependencies = [
  "esp-hal-procmacros",
  "esp-metadata-generated",
  "esp-phy",
- "esp-radio-preempt-driver",
+ "esp-radio-rtos-driver",
  "esp-sync",
  "esp-wifi-sys",
  "heapless 0.9.1",
@@ -814,14 +789,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "esp-radio-preempt-driver"
+name = "esp-radio-rtos-driver"
 version = "0.0.1"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 
 [[package]]
 name = "esp-riscv-rt"
 version = "0.12.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "defmt 1.0.1",
  "document-features",
@@ -832,7 +807,7 @@ dependencies = [
 [[package]]
 name = "esp-rom-sys"
 version = "0.1.1"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "cfg-if",
  "document-features",
@@ -840,9 +815,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "esp-rtos"
+version = "0.0.1"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
+dependencies = [
+ "allocator-api2",
+ "cfg-if",
+ "defmt 1.0.1",
+ "document-features",
+ "embassy-executor",
+ "embassy-time-driver",
+ "embassy-time-queue-utils",
+ "esp-alloc",
+ "esp-config",
+ "esp-hal",
+ "esp-hal-procmacros",
+ "esp-metadata-generated",
+ "esp-radio-rtos-driver",
+ "esp-sync",
+ "portable-atomic",
+]
+
+[[package]]
 name = "esp-sync"
 version = "0.0.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "cfg-if",
  "defmt 1.0.1",
@@ -964,6 +961,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "futures"
+version = "0.3.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65bc07b1a8bc7c85c5f2e110c476c7389b4554ba72af57d8445ea63a576b0876"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "futures-io",
+ "futures-sink",
+ "futures-task",
+ "futures-util",
+]
+
+[[package]]
+name = "futures-channel"
+version = "0.3.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2dff15bf788c671c1934e366d07e30c1814a8ef514e1af724a602e8a2fbe1b10"
+dependencies = [
+ "futures-core",
+ "futures-sink",
+]
+
+[[package]]
 name = "futures-core"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -978,6 +999,12 @@ dependencies = [
  "futures-core",
  "lock_api",
 ]
+
+[[package]]
+name = "futures-io"
+version = "0.3.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e5c1b78ca4aae1ac06c48a526a655760685149f0d465d21f37abfe57ce075c6"
 
 [[package]]
 name = "futures-sink"
@@ -998,6 +1025,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9fa08315bb612088cc391249efdc3bc77536f16c91f6cf495e6fbe85b20a4a81"
 dependencies = [
  "futures-core",
+ "futures-sink",
  "futures-task",
  "pin-project-lite",
  "pin-utils",
@@ -1135,6 +1163,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "js-sys"
+version = "0.3.81"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec48937a97411dcb524a265206ccd4c90bb711fca92b2792c407f268825b9305"
+dependencies = [
+ "once_cell",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.175"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1244,6 +1282,7 @@ checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 name = "ossm-rs"
 version = "0.1.0"
 dependencies = [
+ "bt-hci",
  "critical-section",
  "defmt 1.0.1",
  "embassy-executor",
@@ -1258,16 +1297,16 @@ dependencies = [
  "esp-backtrace",
  "esp-bootloader-esp-idf",
  "esp-hal",
- "esp-hal-embassy",
- "esp-preempt",
  "esp-println",
  "esp-radio",
+ "esp-rtos",
  "heapless 0.8.0",
  "num-traits",
  "portable-atomic",
  "rmodbus",
  "rsruckig",
  "static_cell",
+ "trouble-host",
  "zerocopy",
 ]
 
@@ -1485,6 +1524,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustversion"
+version = "1.0.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
+
+[[package]]
 name = "ryu"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1551,19 +1596,18 @@ dependencies = [
 
 [[package]]
 name = "somni-expr"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa2242e96675e71a00281c04d341df3b9912e4968674d713d2e7499802f2aaff"
+checksum = "3ed9b7648d5e8b2df6c5e49940c54bcdd2b4dd71eafc6e8f1c714eb4581b0f53"
 dependencies = [
- "indexmap",
  "somni-parser",
 ]
 
 [[package]]
 name = "somni-parser"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d9ecb2c142aac72bff4d0b35b4907c6625c82d171c7e2f3602f31b614467d88"
+checksum = "74ee90f60ebcade244355ed4ff4077e364b251508c3462af386a9ee96c5a5492"
 
 [[package]]
 name = "stable_deref_trait"
@@ -1689,6 +1733,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "trouble-host"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78a852f6e193f71732ce3c33661fea2575ba3dac6f48bbe1713059373f96e864"
+dependencies = [
+ "bt-hci",
+ "embassy-futures",
+ "embassy-sync 0.7.2",
+ "embassy-time",
+ "embedded-io",
+ "futures",
+ "heapless 0.9.1",
+ "rand_core 0.6.4",
+ "static_cell",
+ "trouble-host-macros",
+ "zerocopy",
+]
+
+[[package]]
+name = "trouble-host-macros"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bcb85bec3a8393c22ca1a7c25c82c2d33689ab412f3487c492fd01a033ede7c2"
+dependencies = [
+ "convert_case",
+ "darling 0.20.11",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
+ "uuid",
+]
+
+[[package]]
 name = "typenum"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1705,6 +1782,12 @@ name = "unicode-ident"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a5f39404a5da50712a4c1eecf25e90dd62b613502b7e925fd4e4d19b5c96512"
+
+[[package]]
+name = "unicode-segmentation"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
 
 [[package]]
 name = "unicode-width"
@@ -1729,6 +1812,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "uuid"
+version = "1.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f87b8aa10b915a06587d0dec516c282ff295b475d94abf425d62b57710070a2"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "vcell"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1745,6 +1838,65 @@ name = "void"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
+
+[[package]]
+name = "wasm-bindgen"
+version = "0.2.104"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1da10c01ae9f1ae40cbfac0bac3b1e724b320abfcf52229f80b547c0d250e2d"
+dependencies = [
+ "cfg-if",
+ "once_cell",
+ "rustversion",
+ "wasm-bindgen-macro",
+ "wasm-bindgen-shared",
+]
+
+[[package]]
+name = "wasm-bindgen-backend"
+version = "0.2.104"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "671c9a5a66f49d8a47345ab942e2cb93c7d1d0339065d4f8139c486121b43b19"
+dependencies = [
+ "bumpalo",
+ "log",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
+ "wasm-bindgen-shared",
+]
+
+[[package]]
+name = "wasm-bindgen-macro"
+version = "0.2.104"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ca60477e4c59f5f2986c50191cd972e3a50d8a95603bc9434501cf156a9a119"
+dependencies = [
+ "quote",
+ "wasm-bindgen-macro-support",
+]
+
+[[package]]
+name = "wasm-bindgen-macro-support"
+version = "0.2.104"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f07d2f20d4da7b26400c9f4a0511e6e0345b040694e8a75bd41d578fa4421d7"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
+ "wasm-bindgen-backend",
+ "wasm-bindgen-shared",
+]
+
+[[package]]
+name = "wasm-bindgen-shared"
+version = "0.2.104"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bad67dc8b2a1a6e5448428adec4c3e84c43e561d8c9ee8a9e5aabeb193ec41d1"
+dependencies = [
+ "unicode-ident",
+]
 
 [[package]]
 name = "winapi-util"
@@ -1847,7 +1999,7 @@ dependencies = [
 [[package]]
 name = "xtensa-lx"
 version = "0.12.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "critical-section",
 ]
@@ -1855,7 +2007,7 @@ dependencies = [
 [[package]]
 name = "xtensa-lx-rt"
 version = "0.20.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "defmt 1.0.1",
  "document-features",
@@ -1866,7 +2018,7 @@ dependencies = [
 [[package]]
 name = "xtensa-lx-rt-proc-macros"
 version = "0.4.0"
-source = "git+https://github.com/orange-gem/esp-hal.git#ab005156f8be4a95f5dc065dcf0f93dbe08b9512"
+source = "git+https://github.com/orange-gem/esp-hal.git#e5fed5a2c918ff33e779d25d713e6beb879eccde"
 dependencies = [
  "proc-macro2",
  "quote",

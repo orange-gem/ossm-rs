@@ -5,7 +5,7 @@ use core::{
 };
 
 use critical_section::Mutex;
-use defmt::error;
+use defmt::{error, info};
 use esp_hal::{handler, time::Instant, timer::PeriodicTimer, Blocking};
 use rsruckig::prelude::*;
 
@@ -48,6 +48,8 @@ pub struct MotionControl {
 impl MotionControl {
     /// Initialises the MotionControl and allows the use of attached functions
     pub fn init(mut update_timer: PeriodicTimer<'static, Blocking>, mut motor: Motor) {
+        info!("Motion Control Init");
+
         // Motion control over modbus
         motor.enable_modbus(true);
 

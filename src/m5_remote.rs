@@ -102,7 +102,7 @@ pub async fn m5_listener(
     sender: &'static Mutex<NoopRawMutex, EspNowSender<'static>>,
     mut receiver: EspNowReceiver<'static>,
 ) {
-    info!("M5 Listener Started");
+    info!("Task M5 Listener Started");
 
     loop {
         let r = receiver.receive_async().await;
@@ -198,7 +198,7 @@ pub async fn m5_listener(
 /// and shut the machine off
 #[embassy_executor::task]
 pub async fn m5_heartbeat_check() {
-    info!("M5 Heartbeat Check Started");
+    info!("Task M5 Heartbeat Check Started");
 
     let mut ticker = Ticker::every(Duration::from_millis(1000));
     loop {
@@ -219,7 +219,7 @@ pub async fn m5_heartbeat(
     manager: &'static EspNowManager<'static>,
     sender: &'static Mutex<NoopRawMutex, EspNowSender<'static>>,
 ) {
-    info!("M5 Heartbeat Started");
+    info!("Task M5 Heartbeat Started");
 
     let mut ticker = Ticker::every(Duration::from_millis(5000));
 

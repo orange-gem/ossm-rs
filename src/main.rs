@@ -6,7 +6,6 @@
     holding buffers for the duration of a data transfer."
 )]
 
-mod utils;
 mod board;
 mod config;
 mod m5_remote;
@@ -14,30 +13,37 @@ mod motion;
 mod motion_control;
 mod motor;
 mod pattern;
-
-use core::ptr::addr_of_mut;
+mod utils;
 
 use crate::board::Pins;
 use crate::m5_remote::{m5_heartbeat, m5_heartbeat_check, m5_listener};
 use crate::motion::{run_motion, set_motor_settings, wait_for_home};
 use crate::motion_control::MotionControl;
 use crate::motor::{Motor, ReadOnlyMotorRegisters, ReadWriteMotorRegisters};
+use config::{CONNECTIONS_MAX, L2CAP_CHANNELS_MAX};
 use defmt::info;
 use embassy_executor::Spawner;
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Timer};
-use esp_hal::gpio::Pin;
-use esp_hal::system::{CpuControl, Stack};
 use esp_hal::{
     clock::CpuClock,
+    gpio::Pin,
+    interrupt::software::SoftwareInterruptControl,
+    interrupt::Priority,
     peripherals::Peripherals,
-    timer::{systimer::SystemTimer, timg::TimerGroup, OneShotTimer, PeriodicTimer},
+    system::Stack,
+    timer::{timg::TimerGroup, OneShotTimer, PeriodicTimer},
     uart::{self, Instance, Uart},
 };
-use esp_hal_embassy::Executor;
-use esp_radio::esp_now::{EspNowManager, EspNowSender};
-use esp_radio::Controller;
+use esp_radio::{
+    ble::controller::BleConnector,
+    esp_now::{EspNowManager, EspNowSender},
+    Controller,
+};
+use esp_rtos::embassy::InterruptExecutor;
 use static_cell::StaticCell;
+use trouble_host::prelude::{DefaultPacketPool, ExternalController};
+use trouble_host::HostResources;
 
 use {esp_backtrace as _, esp_println as _};
 
@@ -46,8 +52,6 @@ use enum_iterator::all;
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
-
-static mut APP_CORE_STACK: Stack<16384> = Stack::new();
 
 // When you are okay with using a nightly compiler it's better to use https://docs.rs/static_cell/2.1.0/static_cell/macro.make_static.html
 macro_rules! mk_static {
@@ -59,7 +63,7 @@ macro_rules! mk_static {
     }};
 }
 
-#[esp_hal_embassy::main]
+#[esp_rtos::main]
 async fn main(spawner: Spawner) {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
@@ -84,12 +88,14 @@ async fn main(spawner: Spawner) {
         }
     };
 
-    esp_alloc::heap_allocator!(size: 64 * 1024);
+    static APP_CORE_STACK: StaticCell<Stack<16384>> = StaticCell::new();
+    let app_core_stack = APP_CORE_STACK.init(Stack::new());
 
+    esp_alloc::heap_allocator!(size: 128 * 1024);
+
+    let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
     let timg0 = TimerGroup::new(peripherals.TIMG0);
-    esp_preempt::start(timg0.timer0);
-
-    let mut cpu_control = CpuControl::new(peripherals.CPU_CTRL);
+    esp_rtos::start(timg0.timer0);
 
     let rs485_rx_confg = uart::RxConfig::default().with_timeout(10);
     let rs485_config = uart::Config::default()
@@ -116,25 +122,21 @@ async fn main(spawner: Spawner) {
     let motor_timer = OneShotTimer::new(timg1.timer0);
     let mut motor = Motor::new(rs485, motor_timer);
 
-    let esp_radio_ctrl = &*mk_static!(
+    let radio = &*mk_static!(
         Controller<'static>,
         esp_radio::init().expect("Failed to initialize WIFI/BLE controller")
     );
 
     let wifi = peripherals.WIFI;
-    let (mut controller, interfaces) =
-        esp_radio::wifi::new(&esp_radio_ctrl, wifi, Default::default()).unwrap();
-    controller.set_mode(esp_radio::wifi::WifiMode::Sta).unwrap();
-    controller.start().unwrap();
+    let (mut wifi_controller, interfaces) =
+        esp_radio::wifi::new(&radio, wifi, Default::default()).unwrap();
+    wifi_controller
+        .set_mode(esp_radio::wifi::WifiMode::Sta)
+        .unwrap();
+    wifi_controller.start().unwrap();
 
     let esp_now = interfaces.esp_now;
-
     info!("esp-now version {}", esp_now.version().unwrap());
-
-    let systimer = SystemTimer::new(peripherals.SYSTIMER);
-    esp_hal_embassy::init([systimer.alarm0, systimer.alarm1]);
-
-    info!("Embassy initialized!");
 
     let (manager, sender, receiver) = esp_now.split();
     let manager = mk_static!(EspNowManager<'static>, manager);
@@ -142,6 +144,15 @@ async fn main(spawner: Spawner) {
         Mutex::<NoopRawMutex, EspNowSender<'static>>,
         Mutex::<NoopRawMutex, _>::new(sender)
     );
+
+    let bluetooth = peripherals.BT;
+    let connector = BleConnector::new(radio, bluetooth, Default::default());
+    let bt_controller: ExternalController<_, 20> = ExternalController::new(connector);
+    let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
+        HostResources::new();
+    let stack = trouble_host::new(bt_controller, &mut resources);
+
+    info!("Embassy initialized!");
 
     // Wait for the motor to boot up
     Timer::after(Duration::from_millis(500)).await;
@@ -162,18 +173,29 @@ async fn main(spawner: Spawner) {
 
     Timer::after(Duration::from_millis(1000)).await;
 
-    let _guard = cpu_control
-        .start_app_core(unsafe { &mut *addr_of_mut!(APP_CORE_STACK) }, move || {
+    // The regular executor seems to freeze
+    // Use an interrupt executor instead
+    static EXECUTOR_CORE_1: StaticCell<InterruptExecutor<2>> = StaticCell::new();
+    let executor_core1 = InterruptExecutor::new(sw_int.software_interrupt2);
+    let executor_core1 = EXECUTOR_CORE_1.init(executor_core1);
+
+    esp_rtos::start_second_core(
+        peripherals.CPU_CTRL,
+        #[cfg(target_arch = "xtensa")]
+        sw_int.software_interrupt0,
+        sw_int.software_interrupt1,
+        app_core_stack,
+        move || {
             let update_timer = PeriodicTimer::new(timg1.timer1);
             MotionControl::init(update_timer, motor);
 
-            static EXECUTOR: StaticCell<Executor> = StaticCell::new();
-            let executor = EXECUTOR.init(Executor::new());
-            executor.run(|spawner| {
-                spawner.spawn(run_motion()).ok();
-            });
-        })
-        .unwrap();
+            let spawner = executor_core1.start(Priority::Priority1);
+
+            spawner.spawn(run_motion()).ok();
+
+            loop {}
+        },
+    );
 
     Timer::after(Duration::from_millis(1000)).await;
 

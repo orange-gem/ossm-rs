@@ -25,6 +25,10 @@ pub const MOTION_CONTROL_MAX_JERK: f64 = 30000.0;
 // Turn the machine off after no heartbeat was received for this long
 pub const MAX_NO_REMOTE_HEARTBEAT_MS: u64 = 8000;
 
+// ---- BLE parameters ----
+pub const CONNECTIONS_MAX: usize = 2;
+pub const L2CAP_CHANNELS_MAX: usize = 1;
+
 // ---- Calculated parameters ----
 pub const STEPS_PER_MM: f32 = MOTOR_STEPS_PER_REVOLUTION / (PULLEY_TOOTH_COUNT * BELT_PITCH);
 pub const MM_PER_ROTATION: f32 = MOTOR_STEPS_PER_REVOLUTION / STEPS_PER_MM;
