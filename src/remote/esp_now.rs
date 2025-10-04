@@ -11,9 +11,9 @@ use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
 
 use crate::{
     config::{MAX_MOVE_MM, MAX_NO_REMOTE_HEARTBEAT_MS, MOTION_CONTROL_MAX_VELOCITY},
-    motion::{
-        set_motion_depth, set_motion_enabled, set_motion_length, set_motion_pattern,
-        set_motion_sensation, set_motion_velocity,
+    motion::motion_state::{
+        set_motion_depth_mm, set_motion_enabled, set_motion_length_mm, set_motion_pattern,
+        set_motion_sensation_neg_pos_100, set_motion_velocity_mm_s,
     },
 };
 
@@ -75,7 +75,7 @@ impl M5Packet {
             connected: true,
             target: M5_ID,
             speed: MOTION_CONTROL_MAX_VELOCITY as f32,
-            depth: MAX_MOVE_MM,
+            depth: MAX_MOVE_MM as f32,
             ..Default::default()
         }
     }
@@ -160,16 +160,16 @@ pub async fn m5_listener(
                 set_motion_enabled(false);
             }
             M5Command::Speed => {
-                set_motion_velocity(packet.value as u32);
+                set_motion_velocity_mm_s(packet.value as u32);
             }
             M5Command::Depth => {
-                set_motion_depth(packet.value as u32);
+                set_motion_depth_mm(packet.value as u32);
             }
             M5Command::Stroke => {
-                set_motion_length(packet.value as u32);
+                set_motion_length_mm(packet.value as u32);
             }
             M5Command::Sensation => {
-                set_motion_sensation(packet.value as i32);
+                set_motion_sensation_neg_pos_100(packet.value as i32);
             }
             M5Command::Pattern => {
                 set_motion_pattern(packet.value as u32);

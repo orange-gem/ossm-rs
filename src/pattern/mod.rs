@@ -4,8 +4,6 @@ mod simple;
 mod stopngo;
 mod teasingpounding;
 
-use core::fmt::Write;
-
 use deeper::Deeper;
 use defmt::error;
 use halfhalf::HalfHalf;
@@ -14,7 +12,8 @@ use simple::Simple;
 use stopngo::StopNGo;
 use teasingpounding::TeasingPounding;
 
-use crate::utils::saturate_range;
+use crate::{remote::ble::MAX_PATTERN_LENGTH, utils::saturate_range};
+use core::fmt::Write;
 
 pub const MIN_SENSATION: f64 = -100.0;
 pub const MAX_SENSATION: f64 = 100.0;
@@ -128,14 +127,14 @@ impl PatternExecutor {
     }
 
     /// Returns all patterns as json
-    pub fn get_all_patterns_json(&mut self) -> String<256> {
-        let mut output: String<256> = String::new();
+    pub fn get_all_patterns_json(&mut self) -> String<MAX_PATTERN_LENGTH> {
+        let mut output = String::new();
         output.write_char('[').ok();
         for (i, pattern) in self.patterns.iter().enumerate() {
             if let Some(pattern) = pattern {
                 let name = pattern.get_name();
                 if write!(output, r#"{{"name":"{name}","idx":{i}}},"#).is_err() {
-                    error!("Overflow. Returning unfinished string");
+                    error!("Patterns too long. Returning unfinished string");
                     break;
                 }
             }
@@ -144,7 +143,7 @@ impl PatternExecutor {
         output.pop();
 
         if output.write_char(']').is_err() {
-            error!("Overflow. Returning unfinished string");
+            error!("Patterns too long. Returning unfinished string");
         }
 
         output
