@@ -46,6 +46,18 @@ pub async fn wait_for_home(motor: &mut Motor) {
     motor.set_max_allowed_output(max_allowed_output);
 }
 
+async fn retract() {
+    let motion_state: MachineMotionState = get_motion_state().into();
+
+    MotionControl::set_max_velocity(RETRACT_VELOCITY);
+    MotionControl::set_target_position(0.0);
+    while MotionControl::is_move_in_progress() {
+        Timer::after(Duration::from_millis(10)).await;
+    }
+    // Restore the previous velocity
+    MotionControl::set_max_velocity(motion_state.velocity);
+}
+
 #[embassy_executor::task]
 pub async fn run_motion() {
     let mut ticker = Ticker::every(Duration::from_millis(30));
@@ -62,25 +74,20 @@ pub async fn run_motion() {
 
         // Retract the machine if motion was disabled
         if !motion_state.motion_enabled && prev_motion_enabled {
-            // Retract the machine
-            MotionControl::set_max_velocity(RETRACT_VELOCITY);
-            MotionControl::set_target_position(0.0);
-            while MotionControl::is_move_in_progress() {
-                Timer::after(Duration::from_millis(10)).await;
-            }
-            // Restore the previous velocity
-            MotionControl::set_max_velocity(motion_state.velocity);
+            retract().await;
+        }
+
+        if motion_state.pattern != prev_pattern {
+            pattern_executor.set_pattern(motion_state.pattern);
+            pattern_executor.reset();
+            prev_pattern = motion_state.pattern;
+            // Always start the pattern from the retracted position
+            retract().await;
         }
 
         if !MotionControl::is_move_in_progress() && motion_state.motion_enabled {
             // Apply the delay from the previous move before executing the next one
             Timer::after_millis(pattern_move.delay_ms).await;
-
-            if motion_state.pattern != prev_pattern {
-                pattern_executor.set_pattern(motion_state.pattern);
-                pattern_executor.reset();
-                prev_pattern = motion_state.pattern;
-            }
 
             let input = PatternInput {
                 velocity: motion_state.velocity,

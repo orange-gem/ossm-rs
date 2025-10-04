@@ -5,8 +5,9 @@ const BELT_PITCH: f64 = 2.0;
 pub const MIN_MOVE_MM: f64 = 0.0;
 // The maximum allowed move forward from the homing position
 pub const MAX_MOVE_MM: f64 = 190.0;
-// The velocity at which the machine retracts when it is turned off in mm/s
-pub const RETRACT_VELOCITY: f64 = 100.0;
+// The velocity at which the machine retracts when it is turned off
+// or switching to a different a pattern in mm/s
+pub const RETRACT_VELOCITY: f64 = MOTION_CONTROL_MAX_VELOCITY / 4.0;
 // Change this if your machine is going the wrong way
 pub const REVERSE_DIRECTION: bool = false;
 

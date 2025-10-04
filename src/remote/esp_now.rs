@@ -91,8 +91,6 @@ async fn send_heartbeat_packet(
         .await
     {
         error!("Could not send the heartbeat packet {}", err);
-    } else {
-        info!("Sent heartbeat packet");
     }
 }
 
