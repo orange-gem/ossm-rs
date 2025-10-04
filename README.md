@@ -1,6 +1,6 @@
 # OSSM-RS
 
-And alternative firmware for OSSM written in rust.
+An alternative firmware for OSSM written in Rust
 
 You can find the original hardware and software [here](https://github.com/KinkyMakers/OSSM-hardware/tree/master)
 
@@ -11,6 +11,8 @@ You can find the original hardware and software [here](https://github.com/KinkyM
 - S-curve motion planning
 - Strict mechanical bounds checks
 - Adjusting depth, velocity, and stroke start on the fly
+- Off-the-shelf control board support
+- Patterns
 
 ## Trying it out
 
@@ -26,6 +28,7 @@ cargo run --release --features board_<name>
 ## Remote Support
 
 - [M5 remote](https://github.com/ortlof/OSSM-M5-Remote)
+- [OSSM BLE Protocol](https://github.com/KinkyMakers/OSSM-hardware/blob/master/Software/src/services/communication/BLE_Protocol.md)
 
 ## Motor Support
 
@@ -70,11 +73,11 @@ Set pins in `main.rs` manually
 
 The following patterns are supported:
 
-- Simple,
-- TeasingPounding,
-- HalfHalf,
-- Deeper,
-- StopNGo,
+- Simple
+- TeasingPounding
+- HalfHalf
+- Deeper
+- StopNGo
 
 They are designed to closely mimic the patterns provided by the stock OSSM firmware.
 
@@ -89,6 +92,8 @@ For details see the documentation of the `Pattern` trait and the related structs
 
 ## Roadmap
 
+Open an issue if you want to see something added
+
 - [x] Off-the-shelf control board support
 - [x] Patterns
-- [ ] R&D wireless remote support
+- [x] R&D wireless remote support
