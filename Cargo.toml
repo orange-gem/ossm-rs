@@ -52,8 +52,6 @@ bt-hci = "0.6.0"
 trouble-host = { version = "0.4.0", features = [
     "defmt",
     "default-packet-pool-mtu-255",
-    "derive",
-    "peripheral",
 ] }
 
 heapless = "0.9.1"

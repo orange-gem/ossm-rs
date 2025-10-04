@@ -175,7 +175,7 @@ async fn state_notifications<P: PacketPool>(
     server: &Server<'_>,
     connection: &GattConnection<'_, '_, P>,
 ) -> Result<(), Error> {
-    let mut ticker = Ticker::every(Duration::from_millis(1000));
+    let mut ticker = Ticker::every(Duration::from_millis(500));
     loop {
         let state: String<MAX_STATE_LENGTH> = get_motion_state().as_json();
         server
@@ -183,7 +183,6 @@ async fn state_notifications<P: PacketPool>(
             .current_state
             .notify(&connection, &state)
             .await?;
-        info!("Notify {}", state);
         ticker.next().await;
     }
 }
