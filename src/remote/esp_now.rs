@@ -11,9 +11,9 @@ use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
 
 use crate::{
     config::{MAX_MOVE_MM, MAX_NO_REMOTE_HEARTBEAT_MS, MOTION_CONTROL_MAX_VELOCITY},
-    motion::{
-        set_motion_depth, set_motion_enabled, set_motion_length, set_motion_pattern,
-        set_motion_sensation, set_motion_velocity,
+    motion::motion_state::{
+        set_motion_depth_mm, set_motion_enabled, set_motion_length_mm, set_motion_pattern,
+        set_motion_sensation_neg_pos_100, set_motion_velocity_mm_s,
     },
 };
 
@@ -71,12 +71,13 @@ struct M5Packet {
 
 impl M5Packet {
     fn heartbeat_packet() -> Self {
-        let mut packet = M5Packet::default();
-        packet.connected = true;
-        packet.target = M5_ID;
-        packet.speed = MOTION_CONTROL_MAX_VELOCITY as f32;
-        packet.depth = MAX_MOVE_MM;
-        packet
+        Self {
+            connected: true,
+            target: M5_ID,
+            speed: MOTION_CONTROL_MAX_VELOCITY as f32,
+            depth: MAX_MOVE_MM as f32,
+            ..Default::default()
+        }
     }
 }
 
@@ -90,8 +91,6 @@ async fn send_heartbeat_packet(
         .await
     {
         error!("Could not send the heartbeat packet {}", err);
-    } else {
-        info!("Sent heartbeat packet");
     }
 }
 
@@ -120,13 +119,18 @@ pub async fn m5_listener(
             }
         };
 
-        info!("M5 Packet {}", packet);
+        if let M5Command::Heartbeat = packet.command {
+        } else {
+            info!("M5 Packet {}", packet);
+        }
 
         match packet.command {
             M5Command::On => {
-                let mut packet = M5Packet::default();
-                packet.target = M5_ID;
-                packet.command = M5Command::On;
+                let packet = M5Packet {
+                    target: M5_ID,
+                    command: M5Command::On,
+                    ..Default::default()
+                };
                 let peer = manager
                     .fetch_peer(true)
                     .expect("Peer not found even though packet received");
@@ -138,9 +142,11 @@ pub async fn m5_listener(
                 set_motion_enabled(true);
             }
             M5Command::Off => {
-                let mut packet = M5Packet::default();
-                packet.target = M5_ID;
-                packet.command = M5Command::Off;
+                let packet = M5Packet {
+                    target: M5_ID,
+                    command: M5Command::Off,
+                    ..Default::default()
+                };
                 let peer = manager
                     .fetch_peer(true)
                     .expect("Peer not found even though packet received");
@@ -152,16 +158,16 @@ pub async fn m5_listener(
                 set_motion_enabled(false);
             }
             M5Command::Speed => {
-                set_motion_velocity(packet.value as u32);
+                set_motion_velocity_mm_s(packet.value as u32);
             }
             M5Command::Depth => {
-                set_motion_depth(packet.value as u32);
+                set_motion_depth_mm(packet.value as u32);
             }
             M5Command::Stroke => {
-                set_motion_length(packet.value as u32);
+                set_motion_length_mm(packet.value as u32);
             }
             M5Command::Sensation => {
-                set_motion_sensation(packet.value as i32);
+                set_motion_sensation_neg_pos_100(packet.value as i32);
             }
             M5Command::Pattern => {
                 set_motion_pattern(packet.value as u32);
@@ -173,23 +179,22 @@ pub async fn m5_listener(
             _ => {}
         }
 
-        if packet.target == OSSM_ID {
-            if r.info.dst_address == BROADCAST_ADDRESS {
-                if !manager.peer_exists(&r.info.src_address) {
-                    let peer = PeerInfo {
-                        interface: esp_radio::esp_now::EspNowWifiInterface::Sta,
-                        peer_address: r.info.src_address,
-                        lmk: None,
-                        channel: None,
-                        encrypt: false,
-                    };
-                    manager.add_peer(peer).unwrap();
-                    info!("Added new peer {}", r.info.src_address);
+        if packet.target == OSSM_ID
+            && r.info.dst_address == BROADCAST_ADDRESS
+            && !manager.peer_exists(&r.info.src_address)
+        {
+            let peer = PeerInfo {
+                interface: esp_radio::esp_now::EspNowWifiInterface::Sta,
+                peer_address: r.info.src_address,
+                lmk: None,
+                channel: None,
+                encrypt: false,
+            };
+            manager.add_peer(peer).unwrap();
+            info!("Added new peer {}", r.info.src_address);
 
-                    // Signal that we are paired
-                    send_heartbeat_packet(sender, &peer).await;
-                }
-            }
+            // Signal that we are paired
+            send_heartbeat_packet(sender, &peer).await;
         }
     }
 }

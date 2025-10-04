@@ -1300,7 +1300,7 @@ dependencies = [
  "esp-println",
  "esp-radio",
  "esp-rtos",
- "heapless 0.8.0",
+ "heapless 0.9.1",
  "num-traits",
  "portable-atomic",
  "rmodbus",
@@ -1505,11 +1505,11 @@ dependencies = [
 
 [[package]]
 name = "rmodbus"
-version = "0.10.2"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cf34179e63fc1c54a3568331b350370246aa048805560dbc1b9a55df4c89db8"
+checksum = "ae086fe401655097112f1bd988012c0334d19b0c495128b256f1506873c6ba8f"
 dependencies = [
- "heapless 0.8.0",
+ "heapless 0.9.1",
  "ieee754",
 ]
 
@@ -1739,6 +1739,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78a852f6e193f71732ce3c33661fea2575ba3dac6f48bbe1713059373f96e864"
 dependencies = [
  "bt-hci",
+ "defmt 1.0.1",
  "embassy-futures",
  "embassy-sync 0.7.2",
  "embassy-time",

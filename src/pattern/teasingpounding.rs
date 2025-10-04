@@ -2,17 +2,28 @@ use crate::utils::scale;
 
 use super::{Pattern, PatternInput, PatternMove, MAX_SENSATION};
 
+#[derive(Default)]
 pub struct TeasingPounding {
     out_stroke: bool,
 }
 
 impl TeasingPounding {
     pub fn new() -> Self {
-        Self { out_stroke: true }
+        let mut pattern = Self::default();
+        pattern.reset();
+        pattern
     }
 }
 
 impl Pattern for TeasingPounding {
+    fn get_name(&self) -> &'static str {
+        "Teasing Pounding"
+    }
+
+    fn reset(&mut self) {
+        self.out_stroke = true;
+    }
+
     fn next_move(&mut self, input: &PatternInput) -> PatternMove {
         let max_scaling_factor = 5.0;
         let cut_velocity = input.velocity / max_scaling_factor;

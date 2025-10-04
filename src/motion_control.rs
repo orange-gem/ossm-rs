@@ -89,7 +89,7 @@ impl MotionControl {
                 Ok(ok) => {
                     match ok {
                         RuckigResult::Working => {
-                            let mut new_position = self.output.new_position[0] as f32;
+                            let mut new_position = self.output.new_position[0];
 
                             // Saturate the position if out of bounds
                             let mut exceeded = false;

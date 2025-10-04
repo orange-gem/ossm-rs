@@ -10,6 +10,7 @@ use super::{Pattern, PatternInput, PatternMove};
 const MIN_STEPS: f64 = 2.0;
 const MAX_STEPS: f64 = 22.0;
 
+#[derive(Default)]
 pub struct Deeper {
     out_stroke: bool,
     num_steps: usize,
@@ -19,16 +20,25 @@ pub struct Deeper {
 
 impl Deeper {
     pub fn new() -> Self {
-        Self {
-            out_stroke: true,
-            num_steps: scale(0.0, MIN_SENSATION, MAX_SENSATION, MIN_STEPS, MAX_STEPS) as usize,
-            current_step: 1,
-            previous_sensation: 0.0,
-        }
+        let mut pattern = Self::default();
+        pattern.reset();
+        pattern
     }
 }
 
 impl Pattern for Deeper {
+    fn get_name(&self) -> &'static str {
+        "Deeper"
+    }
+
+    fn reset(&mut self) {
+        self.out_stroke = true;
+        self.num_steps = scale(0.0, MIN_SENSATION, MAX_SENSATION, MIN_STEPS, MAX_STEPS) as usize;
+        self.current_step = 1;
+        // Some random value for it to be overwritten
+        self.previous_sensation = -420.0;
+    }
+
     fn next_move(&mut self, input: &PatternInput) -> PatternMove {
         if input.sensation != self.previous_sensation {
             self.num_steps = scale(
