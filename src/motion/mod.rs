@@ -3,47 +3,69 @@ use embassy_time::{Duration, Ticker, Timer};
 pub mod motion_state;
 
 use crate::{
-    config::{RETRACT_VELOCITY, REVERSE_DIRECTION}, motion::motion_state::{get_motion_state, MachineMotionState}, motion_control::MotionControl, motor::{Motor, MAX_MOTOR_SPEED_RPM}, pattern::{Pattern, PatternExecutor, PatternInput, PatternMove}
+    config::{RETRACT_VELOCITY, REVERSE_DIRECTION},
+    motion::motion_state::{get_motion_state, MachineMotionState},
+    motion_control::MotionControl,
+    motor::{Motor, MAX_MOTOR_SPEED_RPM},
+    pattern::{Pattern, PatternExecutor, PatternInput, PatternMove},
 };
 
 /// Set the default motor settings
 pub fn set_motor_settings(motor: &mut Motor) {
     // Set high speed and acceleration since those are controlled by motion control
-    motor.set_target_speed(MAX_MOTOR_SPEED_RPM);
-    motor.set_target_acceleration(50000);
+    motor
+        .set_target_speed(MAX_MOTOR_SPEED_RPM)
+        .expect("Failed to set target speed");
+    motor
+        .set_target_acceleration(50000)
+        .expect("Failed to set target acceleration");
 
     // Defaults from OSSM
-    motor.set_speed_proportional_coefficient(3000);
-    motor.set_position_proportional_coefficient(3000);
-    motor.set_max_allowed_output(600);
+    motor
+        .set_speed_proportional_coefficient(3000)
+        .expect("Failed to set speed proportional coefficient");
+    motor
+        .set_position_proportional_coefficient(3000)
+        .expect("Failed to set position proportional coefficient");
+    motor
+        .set_max_allowed_output(600)
+        .expect("Failed to set max allowed output");
 }
 
 /// Home and wait until done
-pub async fn wait_for_home(motor: &mut Motor) {
+pub fn wait_for_home(motor: &mut Motor) {
     // Remember the original values
-    let target_speed = motor.get_target_speed();
-    let max_allowed_output = motor.get_max_allowed_output();
+    let target_speed = motor
+        .get_target_speed()
+        .expect("Failed to get target speed");
+    let max_allowed_output = motor
+        .get_max_allowed_output()
+        .expect("Failed to get max allowed output");
 
     // Set slower speed and output for homing
-    motor.set_target_speed(80);
-    motor.set_max_allowed_output(89);
-    motor.set_dir_polarity(REVERSE_DIRECTION);
+    motor
+        .set_target_speed(80)
+        .expect("Failed to set target speed");
+    motor
+        .set_max_allowed_output(89)
+        .expect("Failed to set max allowed output");
+    motor
+        .set_dir_polarity(REVERSE_DIRECTION)
+        .expect("Failed to set direction polarity");
 
-    motor.home();
+    motor.home().expect("Failed to start homing");
 
     info!("Homing...");
-    loop {
-        info!("Target {}", motor.get_target_position());
-        if motor.get_target_position().abs() < 15 {
-            info!("Homing Done");
-            break;
-        }
-        Timer::after(Duration::from_millis(100)).await;
-    }
+    motor.wait_for_target_reached(15);
+    info!("Homing Done");
 
     // Restore the original values
-    motor.set_target_speed(target_speed);
-    motor.set_max_allowed_output(max_allowed_output);
+    motor
+        .set_target_speed(target_speed)
+        .expect("Failed to set target speed");
+    motor
+        .set_max_allowed_output(max_allowed_output)
+        .expect("Failed to set max allowed output");
 }
 
 async fn retract() {
@@ -101,6 +123,7 @@ pub async fn run_motion() {
             if pattern_move.position < 0.0 {
                 pattern_move.position = 0.0;
             }
+
             MotionControl::set_max_velocity(pattern_move.velocity);
             MotionControl::set_target_position(pattern_move.position);
         }

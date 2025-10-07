@@ -1,12 +1,20 @@
-use defmt::error;
-use embedded_io::{Read, Write};
+use defmt::{debug, error};
+use embedded_io::Write;
 use enum_iterator::Sequence;
-use esp_hal::{timer::OneShotTimer, uart::Uart, Blocking};
+use esp_hal::{
+    time::Duration,
+    timer::{AnyTimer, Timer},
+    uart::{RxError, Uart},
+    Blocking,
+};
 use heapless::Vec;
 use rmodbus::{client::ModbusRequest, guess_response_frame_len, ModbusProto};
 
 const PROTO: ModbusProto = ModbusProto::Rtu;
 const MIN_REG_READ_REQUIRED: usize = 3;
+
+const MOTOR_TIMEOUT_MS: u64 = 10;
+const MOTOR_CONSECUTIVE_READ_DELAY_US: u64 = 2000;
 
 const MAX_REG_READ_AT_ONCE: usize = 8;
 
@@ -64,6 +72,33 @@ impl ReadableMotorRegister for ReadOnlyMotorRegisters {
     }
 }
 
+#[allow(dead_code)]
+#[repr(u16)]
+pub enum MotorBaudRate {
+    Baud115200 = 803,
+    Baud38400 = 802,
+    Baud19200 = 801,
+    Baud9600 = 800,
+}
+
+impl MotorBaudRate {
+    pub fn as_int(&self) -> u32 {
+        match self {
+            MotorBaudRate::Baud115200 => 115200,
+            MotorBaudRate::Baud38400 => 38400,
+            MotorBaudRate::Baud19200 => 19200,
+            MotorBaudRate::Baud9600 => 9600,
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Debug, defmt::Format)]
+pub enum MotorError {
+    Rs485Error(RxError),
+    Timeout,
+}
+
 // Taken from the rmodbus crate
 fn calc_crc16(frame: &[u8], data_length: u8) -> u16 {
     let mut crc: u16 = 0xffff;
@@ -83,16 +118,68 @@ fn calc_crc16(frame: &[u8], data_length: u8) -> u16 {
 
 pub struct Motor {
     rs485: Uart<'static, Blocking>,
-    timer: OneShotTimer<'static, Blocking>,
+    timer: AnyTimer<'static>,
 }
 
 impl Motor {
-    pub fn new(rs485: Uart<'static, Blocking>, timer: OneShotTimer<'static, Blocking>) -> Self {
+    pub fn new(rs485: Uart<'static, Blocking>, timer: AnyTimer<'static>) -> Self {
         Self { rs485, timer }
     }
 
+    pub fn release(self) -> (Uart<'static, Blocking>, AnyTimer<'static>) {
+        (self.rs485, self.timer)
+    }
+
+    fn start_timer_delay(&mut self, delay: Duration) {
+        if self.timer.is_running() {
+            self.timer.stop();
+        }
+
+        self.timer.clear_interrupt();
+        self.timer.reset();
+
+        self.timer.enable_auto_reload(false);
+        self.timer.load_value(delay).unwrap();
+        self.timer.start();
+    }
+
+    pub fn delay(&mut self, delay: Duration) {
+        self.start_timer_delay(delay);
+
+        while !self.timer.is_interrupt_set() {}
+
+        self.timer.stop();
+        self.timer.clear_interrupt();
+    }
+
+    fn read_with_timeout(&mut self, mut buf: &mut [u8]) -> Result<(), MotorError> {
+        self.start_timer_delay(Duration::from_millis(MOTOR_TIMEOUT_MS));
+
+        while !buf.is_empty() && !self.timer.is_interrupt_set() {
+            match self.rs485.read_buffered(buf) {
+                Ok(n) => buf = &mut buf[n..],
+                Err(e) => return Err(MotorError::Rs485Error(e)),
+            }
+        }
+
+        let timeout = self.timer.is_interrupt_set();
+
+        self.timer.stop();
+        self.timer.clear_interrupt();
+
+        if timeout {
+            return Err(MotorError::Timeout);
+        }
+
+        Ok(())
+    }
+
     /// Write one motor register
-    pub fn write_register(&mut self, reg: &ReadWriteMotorRegisters, val: u16) {
+    pub fn write_register(
+        &mut self,
+        reg: &ReadWriteMotorRegisters,
+        val: u16,
+    ) -> Result<(), MotorError> {
         let mut modbus_req = ModbusRequest::new(1, PROTO);
         let mut request: Vec<u8, 32> = Vec::new();
 
@@ -103,25 +190,24 @@ impl Motor {
         self.rs485
             .write_all(&request)
             .expect("Failed to write the request bytes to RS485");
+        self.rs485.flush().expect("Failed to flush RS485");
 
         let mut response = [0u8; 32];
-        self.rs485
-            .read_exact(&mut response[0..MIN_REG_READ_REQUIRED])
-            .expect("Failed to read the first response bytes");
+        self.read_with_timeout(&mut response[0..MIN_REG_READ_REQUIRED])?;
 
         let len = guess_response_frame_len(&response[0..MIN_REG_READ_REQUIRED], PROTO)
             .expect("Failed to guess frame len") as usize;
         if len > MIN_REG_READ_REQUIRED {
-            self.rs485
-                .read_exact(&mut response[MIN_REG_READ_REQUIRED..len])
-                .expect("Failed to read the remaining response bytes");
+            self.read_with_timeout(&mut response[MIN_REG_READ_REQUIRED..len])?;
         }
         let response = &response[0..len];
 
         modbus_req.parse_ok(response).expect("Modbus error");
 
         // Make sure that multiple operations in a row can succeed
-        self.timer.delay_millis(1);
+        self.delay(Duration::from_micros(MOTOR_CONSECUTIVE_READ_DELAY_US));
+
+        Ok(())
     }
 
     /// Read one or more motor registers
@@ -129,7 +215,7 @@ impl Motor {
         &mut self,
         reg: &T,
         count: u16,
-    ) -> Vec<u16, MAX_REG_READ_AT_ONCE> {
+    ) -> Result<Vec<u16, MAX_REG_READ_AT_ONCE>, MotorError> {
         let mut modbus_req = ModbusRequest::new(1, PROTO);
         let mut request: Vec<u8, 32> = Vec::new();
 
@@ -137,26 +223,26 @@ impl Motor {
             .generate_get_holdings(reg.addr(), count, &mut request)
             .expect("Failed to generate reg read request");
 
-        // info!("Req {:x}", request);
+        debug!("Req {:x}", request);
         self.rs485
             .write_all(&request)
             .expect("Failed to write the request bytes to RS485");
+        self.rs485.flush().expect("Failed to flush RS485");
+
+        // let now = Instant::now();
 
         let mut response = [0u8; 32];
-        self.rs485
-            .read_exact(&mut response[0..MIN_REG_READ_REQUIRED])
-            .expect("Failed to read the first response bytes");
+        self.read_with_timeout(&mut response[0..MIN_REG_READ_REQUIRED])?;
 
         let len = guess_response_frame_len(&response[0..MIN_REG_READ_REQUIRED], PROTO)
             .expect("Failed to guess frame len") as usize;
         if len > MIN_REG_READ_REQUIRED {
-            self.rs485
-                .read_exact(&mut response[MIN_REG_READ_REQUIRED..len])
-                .expect("Failed to read the remaining response bytes");
+            self.read_with_timeout(&mut response[MIN_REG_READ_REQUIRED..len])?;
         }
         let response = &response[0..len];
 
-        // modbus_req.parse_ok(response).expect("Modbus error");
+        // let elapsed = now.elapsed().as_micros();
+        // info!("Motor responded in {} us", elapsed);
 
         let mut res: Vec<u16, MAX_REG_READ_AT_ONCE> = Vec::new();
         modbus_req
@@ -164,18 +250,18 @@ impl Motor {
             .expect("Failed to parse response reg");
 
         // Make sure that multiple operations in a row can succeed
-        self.timer.delay_millis(1);
+        self.delay(Duration::from_micros(MOTOR_CONSECUTIVE_READ_DELAY_US));
 
-        res
+        Ok(res)
     }
 
     /// Read one motor register
-    pub fn read_register<T: ReadableMotorRegister>(&mut self, reg: &T) -> u16 {
-        self.read_registers(reg, 1)[0]
+    pub fn read_register<T: ReadableMotorRegister>(&mut self, reg: &T) -> Result<u16, MotorError> {
+        Ok(self.read_registers(reg, 1)?[0])
     }
 
     /// Set the absolute position using the custom 0x7b command
-    pub fn set_absolute_position(&mut self, position: i32) {
+    pub fn set_absolute_position(&mut self, position: i32) -> Result<(), MotorError> {
         let mut request = [0u8; 8];
         let bytes = position.to_be_bytes();
 
@@ -190,12 +276,10 @@ impl Motor {
         self.rs485
             .write_all(&request)
             .expect("Failed to write the request bytes to RS485");
+        self.rs485.flush().expect("Failed to flush RS485");
 
-        // TODO: Add read timeout
         let mut response = [0u8; 32];
-        self.rs485
-            .read_exact(&mut response[0..8])
-            .expect("Failed to read the first response bytes");
+        self.read_with_timeout(&mut response[0..8])?;
 
         if response[0..2] != [0x1, 0x7b] {
             error!(
@@ -203,93 +287,135 @@ impl Motor {
                 &response[0..8]
             );
         }
-        // Not necessary because we prioritise the update rate over missed positions
-        // self.timer.delay_millis(1);
+
+        // Delay not necessary because we prioritise the update rate over missed positions
+        Ok(())
     }
 
-    /// Enables modbus
-    pub fn enable_modbus(&mut self, enable: bool) {
-        self.write_register(&ReadWriteMotorRegisters::ModbusEnable, enable as u16);
+    pub fn set_baud_rate(&mut self, baud_rate: MotorBaudRate) -> Result<(), MotorError> {
+        // Magic sequence
+        self.write_register(&ReadWriteMotorRegisters::ModbusEnable, 1)?;
+        self.write_register(
+            &ReadWriteMotorRegisters::MotorAcceleration,
+            baud_rate as u16,
+        )?;
+        self.write_register(&ReadWriteMotorRegisters::WeakMagneticAngle, 129)?;
+        // No response for the last one
+        self.write_register(&ReadWriteMotorRegisters::ModbusEnable, 506)
+            .ok();
+
+        Ok(())
+    }
+
+    /// Wait for the target position to be below the threshold
+    pub fn wait_for_target_reached(&mut self, threshold: i32) {
+        loop {
+            let target_position = self
+                .get_target_position()
+                .expect("Failed to get target position");
+
+            debug!("Target {}", target_position,);
+            if target_position.abs() < threshold {
+                break;
+            }
+            self.delay(Duration::from_micros(MOTOR_CONSECUTIVE_READ_DELAY_US * 2));
+        }
     }
 
     // ---- RO regs ----
 
     /// Get the current in A
-    pub fn get_current(&mut self) -> f32 {
-        let reg = self.read_register(&ReadOnlyMotorRegisters::SystemCurrent);
-        reg as f32 / 2000.0
+    pub fn get_current(&mut self) -> Result<f32, MotorError> {
+        let reg = self.read_register(&ReadOnlyMotorRegisters::SystemCurrent)?;
+        let current = reg as f32 / 2000.0;
+        Ok(current)
     }
 
     /// Get the voltage in V
-    pub fn get_voltage(&mut self) -> f32 {
-        let reg = self.read_register(&ReadOnlyMotorRegisters::SystemVoltage);
-        reg as f32 / 327.0
+    pub fn get_voltage(&mut self) -> Result<f32, MotorError> {
+        let reg = self.read_register(&ReadOnlyMotorRegisters::SystemVoltage)?;
+        let voltage = reg as f32 / 327.0;
+        Ok(voltage)
     }
 
     /// Get how many steps need to be taken to reach the target
-    pub fn get_target_position(&mut self) -> i32 {
-        let regs = self.read_registers(&ReadOnlyMotorRegisters::TargetPositionLowU16, 2);
+    pub fn get_target_position(&mut self) -> Result<i32, MotorError> {
+        let regs = self.read_registers(&ReadOnlyMotorRegisters::TargetPositionLowU16, 2)?;
         let bytes = (((regs[1] as u32) << 16) | regs[0] as u32).to_le_bytes();
-        i32::from_le_bytes(bytes)
+        let target_position = i32::from_le_bytes(bytes);
+        Ok(target_position)
     }
 
     // ---- RW regs ----
 
-    pub fn get_target_speed(&mut self) -> u16 {
+    /// Enables modbus
+    pub fn enable_modbus(&mut self, enable: bool) -> Result<(), MotorError> {
+        self.write_register(&ReadWriteMotorRegisters::ModbusEnable, enable as u16)
+    }
+
+    pub fn get_target_speed(&mut self) -> Result<u16, MotorError> {
         self.read_register(&ReadWriteMotorRegisters::MotorTargetSpeed)
     }
 
     /// Set the target speed in RPM 0-3000
-    pub fn set_target_speed(&mut self, speed: u16) {
+    pub fn set_target_speed(&mut self, speed: u16) -> Result<(), MotorError> {
         if speed > 3000 {
             panic!("The speed cannot be more than 3000")
         }
 
-        self.write_register(&ReadWriteMotorRegisters::MotorTargetSpeed, speed);
+        self.write_register(&ReadWriteMotorRegisters::MotorTargetSpeed, speed)
     }
 
     /// 0-59999. 60000 means disabled
-    pub fn set_target_acceleration(&mut self, acceleration: u16) {
-        self.write_register(&ReadWriteMotorRegisters::MotorAcceleration, acceleration);
+    pub fn set_target_acceleration(&mut self, acceleration: u16) -> Result<(), MotorError> {
+        self.write_register(&ReadWriteMotorRegisters::MotorAcceleration, acceleration)
     }
 
-    pub fn set_speed_proportional_coefficient(&mut self, coefficient: u16) {
+    pub fn set_speed_proportional_coefficient(
+        &mut self,
+        coefficient: u16,
+    ) -> Result<(), MotorError> {
         self.write_register(
             &ReadWriteMotorRegisters::SpeedRingProportionalCoefficient,
             coefficient,
-        );
+        )
     }
 
-    pub fn set_position_proportional_coefficient(&mut self, coefficient: u16) {
+    pub fn set_position_proportional_coefficient(
+        &mut self,
+        coefficient: u16,
+    ) -> Result<(), MotorError> {
         self.write_register(
             &ReadWriteMotorRegisters::PositionRingProportionalCoefficient,
             coefficient,
-        );
+        )
     }
 
     /// 0 - Applying external DIR results in anticlockwise rotation
     /// 1 - Applying external DIR results in clockwise rotation
-    pub fn set_dir_polarity(&mut self, polarity: bool) {
-        self.write_register(&ReadWriteMotorRegisters::DirPolarity, polarity as u16);
+    pub fn set_dir_polarity(&mut self, polarity: bool) -> Result<(), MotorError> {
+        self.write_register(&ReadWriteMotorRegisters::DirPolarity, polarity as u16)
     }
 
     /// Get the absolute position in encoder pulses
-    pub fn get_abolute_position(&mut self) -> i32 {
-        let regs = self.read_registers(&ReadWriteMotorRegisters::AbsolutePositionLowU16, 2);
+    pub fn get_abolute_position(&mut self) -> Result<i32, MotorError> {
+        let regs = self.read_registers(&ReadWriteMotorRegisters::AbsolutePositionLowU16, 2)?;
         let bytes = (((regs[1] as u32) << 16) | regs[0] as u32).to_le_bytes();
-        i32::from_le_bytes(bytes)
+        let absolute_position = i32::from_le_bytes(bytes);
+
+        Ok(absolute_position)
     }
 
-    pub fn get_max_allowed_output(&mut self) -> u16 {
+    pub fn get_max_allowed_output(&mut self) -> Result<u16, MotorError> {
         self.read_register(&ReadWriteMotorRegisters::StandstillMaxOutput)
     }
 
-    pub fn set_max_allowed_output(&mut self, output: u16) {
-        self.write_register(&ReadWriteMotorRegisters::StandstillMaxOutput, output);
+    pub fn set_max_allowed_output(&mut self, output: u16) -> Result<(), MotorError> {
+        self.write_register(&ReadWriteMotorRegisters::StandstillMaxOutput, output)
     }
 
     /// Home automatically
-    pub fn home(&mut self) {
-        self.write_register(&ReadWriteMotorRegisters::SpecificFunction, 1);
+    pub fn home(&mut self) -> Result<(), MotorError> {
+        self.write_register(&ReadWriteMotorRegisters::SpecificFunction, 1)
     }
 }

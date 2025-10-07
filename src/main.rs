@@ -16,6 +16,7 @@ mod remote;
 mod utils;
 
 use crate::board::Pins;
+use crate::config::{MOTOR_BAUD_RATE, STOCK_MOTOR_BAUD_RATE};
 use crate::remote::{
     ble::{ble_events, ble_task},
     esp_now::{m5_heartbeat, m5_heartbeat_check, m5_listener},
@@ -25,8 +26,10 @@ use crate::motion::{run_motion, set_motor_settings, wait_for_home};
 use crate::motion_control::MotionControl;
 use crate::motor::{Motor, ReadOnlyMotorRegisters, ReadWriteMotorRegisters};
 use config::{CONNECTIONS_MAX, L2CAP_CHANNELS_MAX};
-use defmt::info;
+use defmt::{error, info};
 use embassy_executor::Spawner;
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::signal::Signal;
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Timer};
 use esp_hal::{
@@ -36,7 +39,7 @@ use esp_hal::{
     interrupt::Priority,
     peripherals::Peripherals,
     system::Stack,
-    timer::{timg::TimerGroup, OneShotTimer, PeriodicTimer},
+    timer::{timg::TimerGroup, PeriodicTimer},
     uart::{self, Instance, Uart},
 };
 use esp_radio::{
@@ -74,6 +77,8 @@ async fn main(spawner: Spawner) {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
+    esp_alloc::heap_allocator!(size: 128 * 1024);
+
     #[cfg(feature = "board_custom")]
     let pins = {
         info!("Board: custom");
@@ -94,39 +99,117 @@ async fn main(spawner: Spawner) {
         }
     };
 
-    static APP_CORE_STACK: StaticCell<Stack<16384>> = StaticCell::new();
-    let app_core_stack = APP_CORE_STACK.init(Stack::new());
-
-    esp_alloc::heap_allocator!(size: 128 * 1024);
-
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0);
 
-    let rs485_rx_confg = uart::RxConfig::default().with_timeout(10);
-    let rs485_config = uart::Config::default()
-        .with_rx(rs485_rx_confg)
-        .with_baudrate(19200);
+    static APP_CORE_STACK: StaticCell<Stack<16384>> = StaticCell::new();
+    let app_core_stack = APP_CORE_STACK.init(Stack::new());
 
-    let mut rs485 = Uart::new(peripherals.UART1, rs485_config)
-        .expect("Failed to initialise RS485")
-        .with_rx(pins.rs485_rx)
-        .with_tx(pins.rs485_tx);
+    // The regular executor seems to freeze
+    // Use an interrupt executor instead
+    static EXECUTOR_CORE_1: StaticCell<InterruptExecutor<2>> = StaticCell::new();
 
-    if let Some(dtr) = pins.rs485_dtr {
-        rs485 = rs485.with_dtr(dtr);
-    }
+    static MOTION_INIT_SIGNAL: Signal<CriticalSectionRawMutex, bool> = Signal::new();
 
-    unsafe {
-        let rs = Peripherals::steal().UART1;
-        let regs = rs.info().regs();
-        regs.rs485_conf()
-            .modify(|_, w| w.rs485_en().set_bit().dl1_en().set_bit());
-    }
+    // All the peripherals are initialised on the core that they will be used on
+    let second_core_function = move || {
+        let rs485_rx_confg = uart::RxConfig::default();
+        let rs485_config = uart::Config::default()
+            .with_rx(rs485_rx_confg)
+            .with_baudrate(MOTOR_BAUD_RATE.as_int());
 
-    let timg1 = TimerGroup::new(peripherals.TIMG1);
-    let motor_timer = OneShotTimer::new(timg1.timer0);
-    let mut motor = Motor::new(rs485, motor_timer);
+        let mut rs485 = Uart::new(peripherals.UART1, rs485_config)
+            .expect("Failed to initialise RS485")
+            .with_rx(pins.rs485_rx)
+            .with_tx(pins.rs485_tx);
+
+        if let Some(dtr) = pins.rs485_dtr {
+            rs485 = rs485.with_dtr(dtr);
+        }
+
+        unsafe {
+            let rs = Peripherals::steal().UART1;
+            let regs = rs.info().regs();
+            regs.rs485_conf()
+                .modify(|_, w| w.rs485_en().set_bit().dl1_en().set_bit());
+        }
+
+        let timg1 = TimerGroup::new(peripherals.TIMG1);
+
+        // Wait for the motor to boot up
+
+        let mut motor = Motor::new(rs485, timg1.timer0.into());
+        motor.delay(esp_hal::time::Duration::from_millis(500));
+
+        // Try to read a register to see if the motor is online
+        if let Err(err) = motor.get_abolute_position() {
+            error!(
+                "Failed to communicate with the motor ({}). Trying to change baud rate",
+                err
+            );
+
+            // Give the motor time to cool down from the high baud rate
+            // Timer::after_millis(100).await;
+
+            let (mut rs485, motor_timer) = motor.release();
+
+            let slow_rs485_config = rs485_config.with_baudrate(STOCK_MOTOR_BAUD_RATE.as_int());
+            rs485
+                .apply_config(&slow_rs485_config)
+                .expect("Failed to change RS485 config");
+
+            let mut motor = Motor::new(rs485, motor_timer);
+
+            motor
+                .set_baud_rate(MOTOR_BAUD_RATE)
+                .expect("Failed to set the new motor baud rate");
+
+            error!("Motor baudrate updated. Please power cycle the machine!");
+
+            loop {}
+        }
+
+        for x in all::<ReadOnlyMotorRegisters>() {
+            let val = motor.read_register(&x).expect("Could not read register");
+            info!("Reg {} val {}", x, val);
+        }
+
+        for x in all::<ReadWriteMotorRegisters>() {
+            let val = motor.read_register(&x).expect("Could not read register");
+            info!("Reg {} val {}", x, val);
+        }
+
+        wait_for_home(&mut motor);
+
+        set_motor_settings(&mut motor);
+
+        let update_timer = PeriodicTimer::new(timg1.timer1);
+        MotionControl::init(update_timer, motor);
+
+        let executor_core1 = InterruptExecutor::new(sw_int.software_interrupt2);
+        let executor_core1 = EXECUTOR_CORE_1.init(executor_core1);
+        let spawner = executor_core1.start(Priority::Priority1);
+
+        spawner.spawn(run_motion()).ok();
+
+        MOTION_INIT_SIGNAL.signal(true);
+
+        loop {}
+    };
+
+    esp_rtos::start_second_core(
+        peripherals.CPU_CTRL,
+        #[cfg(target_arch = "xtensa")]
+        sw_int.software_interrupt0,
+        sw_int.software_interrupt1,
+        app_core_stack,
+        second_core_function,
+    );
+
+    MOTION_INIT_SIGNAL.wait().await;
+
+    Timer::after(Duration::from_millis(1000)).await;
 
     let radio = &*mk_static!(
         Controller<'static>,
@@ -168,53 +251,6 @@ async fn main(spawner: Spawner) {
     let Host {
         peripheral, runner, ..
     } = stack.build();
-
-    info!("Embassy initialized!");
-
-    // Wait for the motor to boot up
-    Timer::after(Duration::from_millis(500)).await;
-
-    for x in all::<ReadOnlyMotorRegisters>() {
-        let reg = motor.read_register(&x);
-        info!("Reg {} val {}", x, reg);
-    }
-
-    for x in all::<ReadWriteMotorRegisters>() {
-        let reg = motor.read_register(&x);
-        info!("Reg {} val {}", x, reg);
-    }
-
-    wait_for_home(&mut motor).await;
-
-    set_motor_settings(&mut motor);
-
-    Timer::after(Duration::from_millis(1000)).await;
-
-    // The regular executor seems to freeze
-    // Use an interrupt executor instead
-    static EXECUTOR_CORE_1: StaticCell<InterruptExecutor<2>> = StaticCell::new();
-    let executor_core1 = InterruptExecutor::new(sw_int.software_interrupt2);
-    let executor_core1 = EXECUTOR_CORE_1.init(executor_core1);
-
-    esp_rtos::start_second_core(
-        peripherals.CPU_CTRL,
-        #[cfg(target_arch = "xtensa")]
-        sw_int.software_interrupt0,
-        sw_int.software_interrupt1,
-        app_core_stack,
-        move || {
-            let update_timer = PeriodicTimer::new(timg1.timer1);
-            MotionControl::init(update_timer, motor);
-
-            let spawner = executor_core1.start(Priority::Priority1);
-
-            spawner.spawn(run_motion()).ok();
-
-            loop {}
-        },
-    );
-
-    Timer::after(Duration::from_millis(1000)).await;
 
     spawner.spawn(m5_listener(manager, sender, receiver)).ok();
     spawner.spawn(m5_heartbeat(manager, sender)).ok();
