@@ -5,8 +5,8 @@ use core::{
 };
 
 use critical_section::Mutex;
-use defmt::{error, info};
-use esp_hal::{handler, time::Instant, timer::PeriodicTimer, Blocking};
+use defmt::{debug, error, info};
+use esp_hal::{handler, interrupt::Priority, time::Instant, timer::PeriodicTimer, Blocking};
 use rsruckig::prelude::*;
 
 use crate::{config::*, motor::Motor};
@@ -19,10 +19,10 @@ static MOVE_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
 
 // Whether to panic on the thresholds being exceeded by motion control
 // If false the values will be capped to the allowed limits, but the execution will continue
-const PANIC_ON_EXCEEEDED: bool = true;
+const PANIC_ON_EXCEEEDED: bool = false;
 
 // Timer interrupt
-#[handler]
+#[handler(priority = Priority::Priority2)]
 pub fn motion_control_interrupt() {
     critical_section::with(|cs| {
         UPDATE_TIMER
@@ -43,6 +43,7 @@ pub struct MotionControl {
     ruckig: Ruckig<1, ThrowErrorHandler>,
     input: InputParameter<1>,
     output: OutputParameter<1>,
+    last_update: Instant,
 }
 
 impl MotionControl {
@@ -51,7 +52,7 @@ impl MotionControl {
         info!("Motion Control Init");
 
         // Motion control over modbus
-        motor.enable_modbus(true);
+        motor.enable_modbus(true).expect("Failed to enable modbus");
 
         update_timer.set_interrupt_handler(motion_control_interrupt);
         update_timer.listen();
@@ -61,6 +62,8 @@ impl MotionControl {
         input.max_velocity[0] = MOTION_CONTROL_MAX_VELOCITY;
         input.max_acceleration[0] = MOTION_CONTROL_MAX_ACCELERATION;
         input.max_jerk[0] = MOTION_CONTROL_MAX_JERK;
+        input.synchronization = Synchronization::None;
+        input.duration_discretization = DurationDiscretization::Discrete;
 
         let motion_control = Self {
             motor,
@@ -70,6 +73,7 @@ impl MotionControl {
             ),
             input,
             output: OutputParameter::new(None),
+            last_update: Instant::now(),
         };
 
         critical_section::with(|cs| {
@@ -84,6 +88,9 @@ impl MotionControl {
         if MOVE_IN_PROGRESS.load(Ordering::Acquire) {
             let before = Instant::now();
             let res = self.ruckig.update(&self.input, &mut self.output);
+
+            let since_last = self.last_update.elapsed().as_micros();
+            self.last_update = Instant::now();
 
             match res {
                 Ok(ok) => {
@@ -116,8 +123,11 @@ impl MotionControl {
                             if !REVERSE_DIRECTION {
                                 new_steps = -new_steps;
                             }
-                            self.motor.set_absolute_position(new_steps as i32);
-                            // info!("Set motor position {}", new_position);
+                            if let Err(err) = self.motor.set_absolute_position(new_steps as i32) {
+                                error!("Failed to set motor position {}", err);
+                            }
+
+                            debug!("Set motor position {}", new_position);
 
                             // info!("PROG");
                             self.output.pass_to_input(&mut self.input);
@@ -145,13 +155,17 @@ impl MotionControl {
                 }
             }
             let duration_ms = before.elapsed().as_millis();
+            debug!(
+                "Update took: {} ms Since last call: {} us",
+                duration_ms, since_last
+            );
+
             if duration_ms > MOTION_CONTROL_LOOP_UPDATE_INTERVAL_MS {
-                panic!(
+                error!(
                     "Update took longer than the update interval {} > {}",
                     duration_ms, MOTION_CONTROL_LOOP_UPDATE_INTERVAL_MS
                 );
             }
-            // info!("Update took {} ms", duration_ms);
         }
     }
 
@@ -167,8 +181,6 @@ impl MotionControl {
             motion_control.output.time = 0.0;
 
             MOVE_IN_PROGRESS.store(true, Ordering::Release);
-            // The first call to update is always the most expensive. Do it outside of the interrupt context
-            motion_control.update_handler();
 
             // Start the timer to run the control loop until the move is done
             UPDATE_TIMER
