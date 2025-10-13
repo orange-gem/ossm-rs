@@ -32,6 +32,7 @@ use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::signal::Signal;
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Timer};
+use esp_hal::gpio::{Level, Output};
 use esp_hal::{
     clock::CpuClock,
     gpio::Pin,
@@ -257,7 +258,7 @@ async fn main(spawner: Spawner) {
     spawner.spawn(m5_heartbeat_check()).ok();
 
     spawner.spawn(ble_task(runner)).ok();
-    spawner.spawn(ble_events(peripheral)).ok();
+    spawner.spawn(ble_events(stack, peripheral)).ok();
 
     loop {
         // ESP-NOW does not work without this

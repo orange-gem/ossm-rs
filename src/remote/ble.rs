@@ -2,7 +2,7 @@ use core::fmt::Write;
 
 use defmt::{error, info};
 use embassy_futures::select::{select, Either};
-use embassy_time::{Duration, Ticker};
+use embassy_time::{Duration, Ticker, Timer};
 use esp_radio::ble::controller::BleConnector;
 use heapless::String;
 use trouble_host::prelude::*;
@@ -38,6 +38,11 @@ struct OssmService {
 
 #[embassy_executor::task]
 pub async fn ble_events(
+    stack: &'static Stack<
+        'static,
+        ExternalController<BleConnector<'static>, 20>,
+        DefaultPacketPool,
+    >,
     mut peripheral: Peripheral<
         'static,
         ExternalController<BleConnector<'static>, 20>,
@@ -52,10 +57,36 @@ pub async fn ble_events(
     .unwrap();
 
     loop {
-        match advertise("OSSM", &mut peripheral, &server).await {
+        match advertise("OSSM", &mut peripheral).await {
             Ok(connection) => {
-                let events = gatt_events_task(&server, &connection);
-                let notify = state_notifications(&server, &connection);
+                Timer::after_millis(100).await;
+
+                connection
+                    .set_phy(stack, PhyKind::Le2M)
+                    .await
+                    .expect("Could not set 2M PHY");
+
+                let connect_params = ConnectParams {
+                    min_connection_interval: Duration::from_millis(8),
+                    max_connection_interval: Duration::from_millis(25),
+                    ..Default::default()
+                };
+                connection
+                    .update_connection_params(stack, &connect_params)
+                    .await
+                    .expect("Failed to update connection params");
+
+                Timer::after_millis(100).await;
+
+                let phy = connection.read_phy(&stack).await.unwrap();
+                info!("PHY {}", phy);
+
+                let gatt_connection = connection
+                    .with_attribute_server(&server)
+                    .expect("Could not transform connection into GATT connection");
+
+                let events = gatt_events_task(&server, &gatt_connection);
+                let notify = state_notifications(&server, &gatt_connection);
 
                 match select(events, notify).await {
                     Either::First(res) => {
@@ -145,8 +176,7 @@ async fn gatt_events_task<P: PacketPool>(
 async fn advertise<'values, 'server, C: Controller>(
     name: &'values str,
     peripheral: &mut Peripheral<'values, C, DefaultPacketPool>,
-    server: &'server Server<'values>,
-) -> Result<GattConnection<'values, 'server, DefaultPacketPool>, BleHostError<C::Error>> {
+) -> Result<Connection<'values, DefaultPacketPool>, BleHostError<C::Error>> {
     let mut advertiser_data = [0; 31];
     let len = AdStructure::encode_slice(
         &[
@@ -166,7 +196,7 @@ async fn advertise<'values, 'server, C: Controller>(
         )
         .await?;
     info!("[adv] advertising");
-    let conn = advertiser.accept().await?.with_attribute_server(server)?;
+    let conn = advertiser.accept().await?;
     info!("[adv] connection established");
     Ok(conn)
 }
