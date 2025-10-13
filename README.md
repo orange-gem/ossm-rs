@@ -89,6 +89,14 @@ Feature flag: `board_waveshare`
 
 ![WaveShare ESP32-S3-RS485-CAN](images/ESP32-S3-RS485-CAN.webp)
 
+### OSSM Reference PCB v3
+
+Feature flag: `board_ossm_v3`
+
+The not yet released board from [here](https://github.com/KinkyMakers/OSSM-hardware/tree/xpi/PCB-v3/Hardware/PCB%20Files/OSSM%20Reference%20PCB%20V3)
+
+![OSSM Reference PCB v3](images/OSSM-Reference-PCB-v3.webp)
+
 ### Custom Board
 
 Feature flag: `board_custom`

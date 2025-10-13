@@ -86,7 +86,8 @@ async fn main(spawner: Spawner) {
         Pins {
             rs485_rx: peripherals.GPIO35.degrade(),
             rs485_tx: peripherals.GPIO37.degrade(),
-            rs485_dtr: Some(peripherals.GPIO36.degrade()),
+            rs485_receive_enable: Some(peripherals.GPIO36.degrade()),
+            rs485_receive_enable_inv: None,
         }
     };
 
@@ -96,7 +97,19 @@ async fn main(spawner: Spawner) {
         Pins {
             rs485_rx: peripherals.GPIO18.degrade(),
             rs485_tx: peripherals.GPIO17.degrade(),
-            rs485_dtr: Some(peripherals.GPIO21.degrade()),
+            rs485_transmit_enable: Some(peripherals.GPIO21.degrade()),
+            rs485_receive_enable_inv: None,
+        }
+    };
+
+    #[cfg(feature = "board_ossm_v3")]
+    let pins = {
+        info!("Board: OSSM v3");
+        Pins {
+            rs485_rx: peripherals.GPIO16.degrade(),
+            rs485_tx: peripherals.GPIO6.degrade(),
+            rs485_transmit_enable: Some(peripherals.GPIO7.degrade()),
+            rs485_receive_enable_inv: Some(peripherals.GPIO15.degrade()),
         }
     };
 
@@ -125,8 +138,13 @@ async fn main(spawner: Spawner) {
             .with_rx(pins.rs485_rx)
             .with_tx(pins.rs485_tx);
 
-        if let Some(dtr) = pins.rs485_dtr {
+        if let Some(dtr) = pins.rs485_transmit_enable {
             rs485 = rs485.with_dtr(dtr);
+        }
+
+        if let Some(receive_enable_pin) = pins.rs485_receive_enable_inv {
+            // Always enable the receiver
+            Output::new(receive_enable_pin, Level::Low, Default::default());
         }
 
         unsafe {
