@@ -80,6 +80,16 @@ async fn main(spawner: Spawner) {
 
     esp_alloc::heap_allocator!(size: 128 * 1024);
 
+    #[cfg(feature = "board_waveshare")]
+    let pins = {
+        info!("Board: WaveShare");
+        Pins {
+            rs485_rx: peripherals.GPIO18.degrade(),
+            rs485_tx: peripherals.GPIO17.degrade(),
+            rs485_dtr: Some(peripherals.GPIO21.degrade()),
+        }
+    };
+
     #[cfg(feature = "board_custom")]
     let pins = {
         info!("Board: custom");
@@ -90,13 +100,13 @@ async fn main(spawner: Spawner) {
         }
     };
 
-    #[cfg(feature = "board_waveshare")]
+    #[cfg(feature = "board_atom_s3")]
     let pins = {
-        info!("Board: WaveShare");
+        info!("Board: Atom S3");
         Pins {
-            rs485_rx: peripherals.GPIO18.degrade(),
-            rs485_tx: peripherals.GPIO17.degrade(),
-            rs485_dtr: Some(peripherals.GPIO21.degrade()),
+            rs485_rx: peripherals.GPIO6.degrade(),
+            rs485_tx: peripherals.GPIO5.degrade(),
+            rs485_dtr: None,
         }
     };
 

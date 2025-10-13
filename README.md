@@ -61,6 +61,21 @@ Feature flag: `board_waveshare`
 
 ![WaveShare ESP32-S3-RS485-CAN](images/ESP32-S3-RS485-CAN.webp)
 
+### M5 Atom S3
+
+Feature flag: `board_atom_s3`
+
+⚠️ Note that this board cannot be powered directly from the motor power supply!
+
+Requires an additional 5V source if powered from the USB connector or a 12V source if powered from the "Atomic RS485 Base"
+
+This "board" consists of a few components from the M5Stack ecosystem:
+- AtomS3-Lite
+- Atomic RS485 Base
+- Grove Cable 10 cm
+
+![M5 Atom S3](images/Atom-S3.webp)
+
 ### Custom Board
 
 Feature flag: `board_custom`
