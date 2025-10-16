@@ -67,8 +67,8 @@ pub async fn ble_events(
                     .expect("Could not set 2M PHY");
 
                 let connect_params = ConnectParams {
-                    min_connection_interval: Duration::from_millis(8),
-                    max_connection_interval: Duration::from_millis(25),
+                    min_connection_interval: Duration::from_micros(7500),
+                    max_connection_interval: Duration::from_micros(7500),
                     ..Default::default()
                 };
                 connection
@@ -79,7 +79,8 @@ pub async fn ble_events(
                 Timer::after_millis(100).await;
 
                 let phy = connection.read_phy(&stack).await.unwrap();
-                info!("PHY {}", phy);
+                let mtu = connection.att_mtu();
+                info!("PHY {} MTU {}", phy, mtu);
 
                 let gatt_connection = connection
                     .with_attribute_server(&server)
