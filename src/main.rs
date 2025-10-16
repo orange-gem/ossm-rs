@@ -104,9 +104,10 @@ async fn main(spawner: Spawner) {
     let pins = {
         info!("Board: Atom S3");
         Pins {
-            rs485_rx: peripherals.GPIO6.degrade(),
-            rs485_tx: peripherals.GPIO5.degrade(),
-            rs485_dtr: None,
+            rs485_rx: peripherals.GPIO5.degrade(),
+            rs485_tx: peripherals.GPIO6.degrade(),
+            // rs485_dtr: None,
+            rs485_dtr: Some(peripherals.GPIO36.degrade()),
         }
     };
 
