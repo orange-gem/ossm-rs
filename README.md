@@ -14,14 +14,42 @@ You can find the original hardware and software [here](https://github.com/KinkyM
 - Off-the-shelf control board support
 - Patterns
 
-## Trying it out
+## Trying It Out
 
-1. Install the toolchain for xtensa devices using the instructions from [here](https://docs.espressif.com/projects/rust/book/getting-started/toolchain.html#xtensa-devices)
+### Getting Ready
 
-2. See the [board support](#board-support) section to see if your board is supported and use the feature flag in the next step
+1. Install Rust using the instructions [here](https://rustup.rs)
+  - Windows
+    - Download and run [rustup-init](https://win.rustup.rs/x86_64)
+    - Select "Quick install via the Visual Studio Community installer"
+    - Select "Proceed with standard installation (default - just press enter)"
+  - Linux or MacOS
+    ```bash
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    ```
+
+2. Open a terminal
+
+3. Install the ESP Rust toolchain for Xtensa devices as well as the `espflash` tool for flashing devices by running the following commands:
+```bash
+cargo install espup --locked
+espup install
+cargo install espflash --locked
+```
+
+More information can be found [here](https://docs.espressif.com/projects/rust/book/getting-started/toolchain.html#xtensa-devices)
+
+### Compiling And Uploading
+
+1. See the [board support](#board-support) section to see if your board is supported and use the feature flag in the next step
+
+2. If on Linux or MacOS set the environment variables with:
+```bash
+. $HOME/export-esp.sh
+```
 
 3. Compile with and upload with:
-```
+```bash
 cargo run --release --features board_<name>
 ```
 
