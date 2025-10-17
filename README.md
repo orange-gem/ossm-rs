@@ -65,9 +65,11 @@ Feature flag: `board_waveshare`
 
 Feature flag: `board_atom_s3`
 
-⚠️ Note that this board cannot be powered directly from the motor power supply!
+#### ⚠️ This board does not work out of the box and requires soldering to make it work!
 
-Requires an additional 5V source if powered from the USB connector or a 12V source if powered from the "Atomic RS485 Base"
+Instructions [here](docs/Atomic_RS485_Base/Atomic_RS485_Base.md)
+
+⚠️ This board cannot be powered directly from the motor power supply if you use above 24V!
 
 This "board" consists of a few components from the M5Stack ecosystem:
 - AtomS3-Lite
