@@ -35,6 +35,10 @@ pub const MOTION_CONTROL_MAX_JERK: f64 = 30000.0;
 pub const MAX_NO_REMOTE_HEARTBEAT_MS: u64 = 8000;
 // Motor baud rate to be used by the firmware
 pub const MOTOR_BAUD_RATE: MotorBaudRate = MotorBaudRate::Baud115200;
+// Min output in torque mode. 0-60
+pub const MOTOR_MIN_OUTPUT: f64 = 12.0;
+// Max output in torque mode. 0-60
+pub const MOTOR_MAX_OUTPUT: f64 = 60.0;
 
 // ---- BLE parameters ----
 pub const CONNECTIONS_MAX: usize = 1;

@@ -51,10 +51,12 @@ pub fn wait_for_home(motor: &mut Motor) {
     motor.wait_for_target_reached(15);
     info!("Homing Done");
 
+    motor.delay(esp_hal::time::Duration::from_millis(20));
+
     // Enabling modbus seems to reset the target speed and the max allowed output to default
     motor.enable_modbus(true).expect("Failed to enable modbus");
 
-    motor.delay(esp_hal::time::Duration::from_millis(100));
+    motor.delay(esp_hal::time::Duration::from_millis(300));
 
     let mut new_steps = MIN_MOVE_MM * STEPS_PER_MM;
     if !REVERSE_DIRECTION {
@@ -95,6 +97,10 @@ pub async fn run_motion() {
     let mut pattern_executor = PatternExecutor::new();
     let mut prev_pattern: u32 = 0;
     let mut pattern_move = PatternMove::default();
+    let mut prev_pattern_move = PatternMove::default();
+    // Values to be overriden on the first move
+    prev_pattern_move.velocity = -420.0;
+    prev_pattern_move.torque = -420.0;
 
     info!("Task Motion Started");
 
@@ -110,6 +116,7 @@ pub async fn run_motion() {
         if motion_state.pattern != prev_pattern {
             pattern_executor.set_pattern(motion_state.pattern);
             pattern_executor.reset();
+            info!("Pattern set to: {}", pattern_executor.get_current_pattern_name());
             prev_pattern = motion_state.pattern;
             // Always start the pattern from the retracted position
             retract().await;
@@ -129,8 +136,15 @@ pub async fn run_motion() {
             // A move with all the constraints met
             pattern_move = pattern_executor.next_move(&input);
 
-            MotionControl::set_max_velocity(pattern_move.velocity);
+            if pattern_move.velocity != prev_pattern_move.velocity {
+                MotionControl::set_max_velocity(pattern_move.velocity);
+            }
+            if pattern_move.torque != prev_pattern_move.torque {
+                MotionControl::set_torque(pattern_move.torque);
+            }
             MotionControl::set_target_position(pattern_move.position);
+
+            prev_pattern_move = pattern_move;
         }
         ticker.next().await;
 

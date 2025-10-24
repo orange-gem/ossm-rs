@@ -9,7 +9,7 @@ use defmt::{debug, error, info};
 use esp_hal::{handler, interrupt::Priority, time::Instant, timer::PeriodicTimer, Blocking};
 use rsruckig::prelude::*;
 
-use crate::{config::*, motor::Motor};
+use crate::{config::*, motor::Motor, utils::{saturate_range, scale}};
 
 static UPDATE_TIMER: Mutex<RefCell<Option<PeriodicTimer<'static, Blocking>>>> =
     Mutex::new(RefCell::new(None));
@@ -220,6 +220,29 @@ impl MotionControl {
                 motion_control.input.max_velocity[0] = MOTION_CONTROL_MAX_VELOCITY;
             }
             motion_control.output.time = 0.0;
+        });
+    }
+
+    /// Set the maximum torque for the move in %
+    pub fn set_torque(max_torque: f64) {
+        let mut torque = saturate_range(max_torque, 0.0, 100.0);
+        torque = scale(
+            torque,
+            0.0,
+            100.0,
+            MOTOR_MIN_OUTPUT,
+            MOTOR_MAX_OUTPUT,
+        );
+        // The last digit is 0 for no alarm
+        torque = torque * 10.0;
+
+        info!("Torque set to {}", torque as u16);
+
+        critical_section::with(|cs| {
+            let mut motion_control = MOTION_CONTROL.borrow_ref_mut(cs);
+            let motion_control = motion_control.as_mut().unwrap();
+
+            motion_control.motor.set_max_allowed_output(torque as u16).expect("Failed to set max allowed output (torque)");
         });
     }
 

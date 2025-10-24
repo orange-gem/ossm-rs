@@ -110,7 +110,7 @@ pub fn set_motion_velocity_pct(mut velocity: u32) {
     MotionControl::set_max_velocity(motion_velocity_mm_s);
 }
 
-/// Set the motion sensation in a range from -100 to 100
+/// Set the motion sensation in %
 pub fn set_motion_sensation_pct(mut sensation: u32) {
     if sensation > 100 {
         sensation = 100;
@@ -123,6 +123,7 @@ pub fn set_motion_pattern(index: u32) {
     MOTION_STATE.pattern.store(index, Ordering::Release);
 }
 
+/// Set whether the motion is enabled
 pub fn set_motion_enabled(enabled: bool) {
     MOTION_STATE
         .motion_enabled
