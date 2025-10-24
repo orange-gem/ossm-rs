@@ -53,6 +53,17 @@ More information can be found [here](https://docs.espressif.com/projects/rust/bo
 cargo run --release --features board_<name>
 ```
 
+### First Boot
+
+When you first start the machine it may appear that nothing is working.
+
+Power cycle everything! Disconnect the motor power supply as well as the controller board for a few seconds and then reconnect everything.
+
+This is necessary the motor comes with a baudrate of 19200 from the factory.
+This is very slow and on first boot OSSM-RS will change it to 115200 which requires the motor to be power cycled to take effect.
+
+If you check the logs you should see: `Motor baudrate updated. Please power cycle the machine!`
+
 ## Remote Support
 
 - [M5 remote](https://github.com/ortlof/OSSM-M5-Remote)
