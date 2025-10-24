@@ -366,6 +366,10 @@ impl Motor {
         self.write_register(&ReadWriteMotorRegisters::MotorTargetSpeed, speed)
     }
 
+    pub fn get_target_acceleration(&mut self) -> Result<u16, MotorError> {
+        self.read_register(&ReadWriteMotorRegisters::MotorAcceleration)
+    }
+
     /// 0-59999. 60000 means disabled
     pub fn set_target_acceleration(&mut self, acceleration: u16) -> Result<(), MotorError> {
         self.write_register(&ReadWriteMotorRegisters::MotorAcceleration, acceleration)

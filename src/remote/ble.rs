@@ -78,7 +78,7 @@ pub async fn ble_events(
 
                 Timer::after_millis(100).await;
 
-                let phy = connection.read_phy(&stack).await.unwrap();
+                let phy = connection.read_phy(stack).await.unwrap();
                 let mtu = connection.att_mtu();
                 info!("PHY {} MTU {}", phy, mtu);
 
@@ -212,7 +212,7 @@ async fn state_notifications<P: PacketPool>(
         server
             .ossm_service
             .current_state
-            .notify(&connection, &state)
+            .notify(connection, &state)
             .await?;
         ticker.next().await;
     }

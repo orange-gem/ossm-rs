@@ -32,7 +32,6 @@ use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::signal::Signal;
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Timer};
-use esp_hal::gpio::{Level, Output};
 use esp_hal::{
     clock::CpuClock,
     gpio::Pin,
@@ -80,6 +79,16 @@ async fn main(spawner: Spawner) {
 
     esp_alloc::heap_allocator!(size: 128 * 1024);
 
+    // Dummy board to avoid LSP complaints
+    #[cfg(feature = "board_dummy")]
+    let pins = {
+        Pins {
+            rs485_rx: peripherals.GPIO1.degrade(),
+            rs485_tx: peripherals.GPIO2.degrade(),
+            rs485_dtr: Some(peripherals.GPIO3.degrade()),
+        }
+    };
+
     #[cfg(feature = "board_waveshare")]
     let pins = {
         info!("Board: WaveShare");
@@ -90,16 +99,6 @@ async fn main(spawner: Spawner) {
         }
     };
 
-    #[cfg(feature = "board_custom")]
-    let pins = {
-        info!("Board: custom");
-        Pins {
-            rs485_rx: peripherals.GPIO35.degrade(),
-            rs485_tx: peripherals.GPIO37.degrade(),
-            rs485_dtr: Some(peripherals.GPIO36.degrade()),
-        }
-    };
-
     #[cfg(feature = "board_atom_s3")]
     let pins = {
         info!("Board: Atom S3");
@@ -107,6 +106,16 @@ async fn main(spawner: Spawner) {
             rs485_rx: peripherals.GPIO5.degrade(),
             rs485_tx: peripherals.GPIO6.degrade(),
             rs485_dtr: Some(peripherals.GPIO7.degrade()),
+        }
+    };
+
+    #[cfg(feature = "board_custom")]
+    let pins = {
+        info!("Board: custom");
+        Pins {
+            rs485_rx: peripherals.GPIO35.degrade(),
+            rs485_tx: peripherals.GPIO37.degrade(),
+            rs485_dtr: Some(peripherals.GPIO36.degrade()),
         }
     };
 

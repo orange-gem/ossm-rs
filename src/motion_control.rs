@@ -59,6 +59,7 @@ impl MotionControl {
 
         let mut input = InputParameter::new(None);
 
+        input.current_position[0] = MIN_MOVE_MM;
         input.max_velocity[0] = MOTION_CONTROL_MAX_VELOCITY;
         input.max_acceleration[0] = MOTION_CONTROL_MAX_ACCELERATION;
         input.max_jerk[0] = MOTION_CONTROL_MAX_JERK;
@@ -100,18 +101,21 @@ impl MotionControl {
 
                             // Saturate the position if out of bounds
                             let mut exceeded = false;
+                            if new_position < MIN_MOVE_MM {
+                                error!(
+                                    "Motion control exceeded the min allowed move ({} < {})",
+                                    new_position, MIN_MOVE_MM
+                                );
+                                new_position = MIN_MOVE_MM;
+                                exceeded = true;
+                            }
+
                             if new_position > MAX_MOVE_MM {
                                 error!(
                                     "Motion control exceeded the max allowed move ({} > {})",
                                     new_position, MAX_MOVE_MM
                                 );
                                 new_position = MAX_MOVE_MM;
-                                exceeded = true;
-                            }
-
-                            if new_position < 0.0 {
-                                error!("Motion control went below 0 ({})", new_position);
-                                new_position = 0.0;
                                 exceeded = true;
                             }
 

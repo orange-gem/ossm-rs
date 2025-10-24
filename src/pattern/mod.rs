@@ -12,7 +12,7 @@ use simple::Simple;
 use stopngo::StopNGo;
 use teasingpounding::TeasingPounding;
 
-use crate::{remote::ble::MAX_PATTERN_LENGTH, utils::saturate_range};
+use crate::{config::MIN_MOVE_MM, remote::ble::MAX_PATTERN_LENGTH, utils::saturate_range};
 use core::fmt::Write;
 
 pub const MIN_SENSATION: f64 = -100.0;
@@ -169,9 +169,13 @@ impl Pattern for PatternExecutor {
             .expect("Checked in set_pattern");
 
         let mut next_move = pattern.next_move(input);
-        // Verify that all constraints have been met and saturate if not
+
+        // Verify that all the input constraints have been met and saturate if not
         next_move.position = saturate_range(next_move.position, 0.0, input.depth);
         next_move.velocity = saturate_range(next_move.velocity, 0.0, input.velocity);
+
+        // Each move is from 0 to depth. Add MIN_MOVE_MM to start from the minimum allowed position
+        next_move.position += MIN_MOVE_MM;
 
         next_move
     }

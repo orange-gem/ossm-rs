@@ -10,7 +10,7 @@ use portable_atomic::AtomicU64;
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
 
 use crate::{
-    config::{MAX_MOVE_MM, MAX_NO_REMOTE_HEARTBEAT_MS, MOTION_CONTROL_MAX_VELOCITY},
+    config::{MAX_NO_REMOTE_HEARTBEAT_MS, MAX_TRAVEL_MM, MOTION_CONTROL_MAX_VELOCITY},
     motion::motion_state::{
         set_motion_depth_mm, set_motion_enabled, set_motion_length_mm, set_motion_pattern,
         set_motion_sensation_neg_pos_100, set_motion_velocity_mm_s,
@@ -75,7 +75,7 @@ impl M5Packet {
             connected: true,
             target: M5_ID,
             speed: MOTION_CONTROL_MAX_VELOCITY as f32,
-            depth: MAX_MOVE_MM as f32,
+            depth: MAX_TRAVEL_MM as f32,
             ..Default::default()
         }
     }

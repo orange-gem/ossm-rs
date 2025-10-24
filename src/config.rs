@@ -4,9 +4,11 @@ use crate::motor::MotorBaudRate;
 const PULLEY_TOOTH_COUNT: f64 = 20.0;
 const BELT_PITCH: f64 = 2.0;
 // The minimum allowed move forward from the homing position
-pub const MIN_MOVE_MM: f64 = 0.0;
+pub const MIN_MOVE_MM: f64 = 10.0;
 // The maximum allowed move forward from the homing position
 pub const MAX_MOVE_MM: f64 = 190.0;
+// The max total travel distance of the machine
+pub const MAX_TRAVEL_MM: f64 = MAX_MOVE_MM - MIN_MOVE_MM;
 // The velocity at which the machine retracts when it is turned off
 // or switching to a different a pattern in mm/s
 pub const RETRACT_VELOCITY: f64 = MOTION_CONTROL_MAX_VELOCITY / 4.0;
