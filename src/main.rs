@@ -17,9 +17,10 @@ mod utils;
 
 use crate::board::Pins;
 use crate::config::{MOTOR_BAUD_RATE, STOCK_MOTOR_BAUD_RATE};
+use crate::remote::remote_connection_task;
 use crate::remote::{
-    ble::{ble_events, ble_task},
-    esp_now::{m5_heartbeat, m5_heartbeat_check, m5_listener},
+    ble::{ble_events_task, ble_runner_task},
+    esp_now::{m5_heartbeat_check_task, m5_heartbeat_task, m5_task},
 };
 
 use crate::motion::{run_motion, set_motor_settings, wait_for_home};
@@ -211,7 +212,7 @@ async fn main(spawner: Spawner) {
         let executor_core1 = EXECUTOR_CORE_1.init(executor_core1);
         let spawner = executor_core1.start(Priority::Priority1);
 
-        spawner.spawn(run_motion()).ok();
+        spawner.must_spawn(run_motion());
 
         MOTION_INIT_SIGNAL.signal(true);
 
@@ -272,12 +273,14 @@ async fn main(spawner: Spawner) {
         peripheral, runner, ..
     } = stack.build();
 
-    spawner.spawn(m5_listener(manager, sender, receiver)).ok();
-    spawner.spawn(m5_heartbeat(manager, sender)).ok();
-    spawner.spawn(m5_heartbeat_check()).ok();
+    spawner.must_spawn(m5_task(manager, sender, receiver));
+    spawner.must_spawn(m5_heartbeat_task(manager, sender));
+    spawner.must_spawn(m5_heartbeat_check_task());
 
-    spawner.spawn(ble_task(runner)).ok();
-    spawner.spawn(ble_events(stack, peripheral)).ok();
+    spawner.must_spawn(ble_runner_task(runner));
+    spawner.must_spawn(ble_events_task(stack, peripheral));
+
+    spawner.must_spawn(remote_connection_task());
 
     loop {
         // ESP-NOW does not work without this

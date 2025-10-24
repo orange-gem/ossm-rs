@@ -1,4 +1,4 @@
-use core::sync::atomic::Ordering;
+use core::sync::atomic::{AtomicBool, Ordering};
 
 use defmt::{error, info, Format};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
@@ -21,6 +21,7 @@ const OSSM_ID: i32 = 1;
 const M5_ID: i32 = 99;
 
 static LAST_HEARTBEAT: AtomicU64 = AtomicU64::new(0);
+static CONNECTED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Default, Format, TryFromBytes, IntoBytes, Immutable)]
 #[repr(i32)]
@@ -96,7 +97,7 @@ async fn send_heartbeat_packet(
 
 /// Task to get the motor packets and update the state
 #[embassy_executor::task]
-pub async fn m5_listener(
+pub async fn m5_task(
     manager: &'static EspNowManager<'static>,
     sender: &'static Mutex<NoopRawMutex, EspNowSender<'static>>,
     mut receiver: EspNowReceiver<'static>,
@@ -202,7 +203,7 @@ pub async fn m5_listener(
 /// Task to check the heartbeats from the remote
 /// and shut the machine off
 #[embassy_executor::task]
-pub async fn m5_heartbeat_check() {
+pub async fn m5_heartbeat_check_task() {
     info!("Task M5 Heartbeat Check Started");
 
     let mut ticker = Ticker::every(Duration::from_millis(1000));
@@ -210,9 +211,7 @@ pub async fn m5_heartbeat_check() {
         let last_heartbeat = Instant::from_millis(LAST_HEARTBEAT.load(Ordering::Acquire));
         let elapsed = last_heartbeat.elapsed().as_millis();
 
-        if elapsed > MAX_NO_REMOTE_HEARTBEAT_MS {
-            set_motion_enabled(false);
-        }
+        CONNECTED.store(elapsed <= MAX_NO_REMOTE_HEARTBEAT_MS, Ordering::Release);
 
         ticker.next().await;
     }
@@ -220,7 +219,7 @@ pub async fn m5_heartbeat_check() {
 
 /// Task to send heartbeats to the remote
 #[embassy_executor::task]
-pub async fn m5_heartbeat(
+pub async fn m5_heartbeat_task(
     manager: &'static EspNowManager<'static>,
     sender: &'static Mutex<NoopRawMutex, EspNowSender<'static>>,
 ) {
@@ -241,4 +240,8 @@ pub async fn m5_heartbeat(
 
         send_heartbeat_packet(sender, &peer).await;
     }
+}
+
+pub fn is_m5_connected() -> bool {
+    CONNECTED.load(Ordering::Acquire)
 }

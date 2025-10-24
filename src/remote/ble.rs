@@ -1,4 +1,7 @@
-use core::fmt::Write;
+use core::{
+    fmt::Write,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use defmt::{error, info};
 use embassy_futures::select::{select, Either};
@@ -19,6 +22,8 @@ pub const MAX_COMMAND_LENGTH: usize = 64;
 pub const MAX_STATE_LENGTH: usize = 128;
 pub const MAX_PATTERN_LENGTH: usize = 256;
 
+static CONNECTED: AtomicBool = AtomicBool::new(false);
+
 #[gatt_server]
 struct Server {
     ossm_service: OssmService,
@@ -37,7 +42,7 @@ struct OssmService {
 }
 
 #[embassy_executor::task]
-pub async fn ble_events(
+pub async fn ble_events_task(
     stack: &'static Stack<
         'static,
         ExternalController<BleConnector<'static>, 20>,
@@ -110,7 +115,7 @@ pub async fn ble_events(
 }
 
 #[embassy_executor::task]
-pub async fn ble_task(
+pub async fn ble_runner_task(
     mut runner: Runner<'static, ExternalController<BleConnector<'static>, 20>, DefaultPacketPool>,
 ) {
     loop {
@@ -169,6 +174,7 @@ async fn gatt_events_task<P: PacketPool>(
             _ => {} // ignore other Gatt Connection Events
         }
     };
+    CONNECTED.store(false, Ordering::Release);
     info!("[gatt] disconnected: {:?}", reason);
     Ok(())
 }
@@ -198,6 +204,7 @@ async fn advertise<'values, 'server, C: Controller>(
         .await?;
     info!("[adv] advertising");
     let conn = advertiser.accept().await?;
+    CONNECTED.store(true, Ordering::Release);
     info!("[adv] connection established");
     Ok(conn)
 }
@@ -309,4 +316,8 @@ fn process_command(command: &String<MAX_COMMAND_LENGTH>, server: &Server<'_>) {
     if let Err(err) = server.set(&server.ossm_service.primary_command, &response_str) {
         error!("Failed to write the response to a set command {:?}", err);
     }
+}
+
+pub fn is_ble_connected() -> bool {
+    CONNECTED.load(Ordering::Acquire)
 }
