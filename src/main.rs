@@ -84,9 +84,9 @@ async fn main(spawner: Spawner) {
     #[cfg(feature = "board_dummy")]
     let pins = {
         Pins {
-            rs485_rx: peripherals.GPIO1.degrade(),
-            rs485_tx: peripherals.GPIO2.degrade(),
-            rs485_dtr: Some(peripherals.GPIO3.degrade()),
+            rs485_rx: peripherals.GPIO38.degrade(),
+            rs485_tx: peripherals.GPIO39.degrade(),
+            rs485_dtr: Some(peripherals.GPIO40.degrade()),
         }
     };
 
@@ -97,6 +97,16 @@ async fn main(spawner: Spawner) {
             rs485_rx: peripherals.GPIO18.degrade(),
             rs485_tx: peripherals.GPIO17.degrade(),
             rs485_dtr: Some(peripherals.GPIO21.degrade()),
+        }
+    };
+
+    #[cfg(feature = "board_seeed_xiao_s3")]
+    let pins = {
+        info!("Board: Seed Xiao S3");
+        Pins {
+            rs485_rx: peripherals.GPIO6.degrade(),
+            rs485_tx: peripherals.GPIO5.degrade(),
+            rs485_dtr: Some(peripherals.GPIO3.degrade()),
         }
     };
 
