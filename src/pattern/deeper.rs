@@ -31,6 +31,10 @@ impl Pattern for Deeper {
         "Deeper"
     }
 
+    fn get_description(&self) -> &'static str {
+        "Goes deeper with every stroke. Sensation controls the number of steps"
+    }
+
     fn reset(&mut self) {
         self.out_stroke = true;
         self.num_steps = scale(0.0, MIN_SENSATION, MAX_SENSATION, MIN_STEPS, MAX_STEPS) as usize;

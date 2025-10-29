@@ -79,6 +79,8 @@ impl PatternMove {
 pub trait Pattern {
     fn get_name(&self) -> &'static str;
 
+    fn get_description(&self) -> &'static str;
+
     /// Reset the pattern to its initial state
     fn reset(&mut self);
 
@@ -174,11 +176,40 @@ impl PatternExecutor {
 
         output
     }
+
+    pub fn get_pattern_description(&self, index: usize) -> String<MAX_PATTERN_LENGTH> {
+        let mut output = String::new();
+
+        if let Some(pattern) = self.patterns.get(index) {
+            if let Some(pattern) = pattern {
+                let description = pattern.get_description();
+                if output.push_str(description).is_err() {
+                    output
+                        .push_str("Pattern Description Too Long")
+                        .expect("Always fits");
+                }
+            } else {
+                output
+                    .push_str("Pattern Not Implemented")
+                    .expect("Always fits");
+            }
+        } else {
+            output
+                .push_str("Invalid Pattern Index")
+                .expect("Always fits");
+        }
+
+        output
+    }
 }
 
 impl Pattern for PatternExecutor {
     fn get_name(&self) -> &'static str {
         "Pattern Executor"
+    }
+
+    fn get_description(&self) -> &'static str {
+        "Executes other patterns"
     }
 
     fn reset(&mut self) {

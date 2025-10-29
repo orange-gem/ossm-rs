@@ -18,6 +18,10 @@ impl Pattern for Simple {
         "Simple Stroke"
     }
 
+    fn get_description(&self) -> &'static str {
+        "Simple in and out. Sensation does nothing."
+    }
+
     fn reset(&mut self) {
         self.out_stroke = true;
     }

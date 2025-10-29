@@ -1,4 +1,7 @@
-use crate::{pattern::{MAX_SENSATION, MIN_SENSATION}, utils::scale};
+use crate::{
+    pattern::{MAX_SENSATION, MIN_SENSATION},
+    utils::scale,
+};
 
 use super::{Pattern, PatternInput, PatternMove};
 
@@ -18,6 +21,10 @@ impl Torque {
 impl Pattern for Torque {
     fn get_name(&self) -> &'static str {
         "Torque"
+    }
+
+    fn get_description(&self) -> &'static str {
+        "Same as the simple pattern. Sensation controls the torque applied"
     }
 
     fn reset(&mut self) {

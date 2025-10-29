@@ -21,6 +21,10 @@ impl Pattern for HalfHalf {
         "Half'n'Half"
     }
 
+    fn get_description(&self) -> &'static str {
+        "Alternate between full and half strokes. Sensation controls speed ratio of in and out strokes"
+    }
+
     fn reset(&mut self) {
         self.out_stroke = true;
         self.half = false;

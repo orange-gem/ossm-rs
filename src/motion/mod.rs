@@ -116,7 +116,10 @@ pub async fn run_motion() {
         if motion_state.pattern != prev_pattern {
             pattern_executor.set_pattern(motion_state.pattern);
             pattern_executor.reset();
-            info!("Pattern set to: {}", pattern_executor.get_current_pattern_name());
+            info!(
+                "Pattern set to: {}",
+                pattern_executor.get_current_pattern_name()
+            );
             prev_pattern = motion_state.pattern;
             // Always start the pattern from the retracted position
             retract().await;
