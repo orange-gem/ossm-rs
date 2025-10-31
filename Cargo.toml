@@ -74,10 +74,13 @@ rsruckig = { default-features = false, features = [
 ], git = "https://github.com/petrikosk/rsruckig.git" }
 
 [features]
-default = ["board_waveshare"]
-board_custom = []
+default = ["board_dummy"]
+board_dummy = []
 board_waveshare = []
+board_seeed_xiao_s3 = []
+board_atom_s3 = []
 board_ossm_v3 = []
+board_custom = []
 
 
 [profile.release]

@@ -1,11 +1,16 @@
+use crate::{
+    pattern::{MAX_SENSATION, MIN_SENSATION},
+    utils::scale,
+};
+
 use super::{Pattern, PatternInput, PatternMove};
 
 #[derive(Default)]
-pub struct Simple {
+pub struct Torque {
     out_stroke: bool,
 }
 
-impl Simple {
+impl Torque {
     pub fn new() -> Self {
         let mut pattern = Self::default();
         pattern.reset();
@@ -13,13 +18,13 @@ impl Simple {
     }
 }
 
-impl Pattern for Simple {
+impl Pattern for Torque {
     fn get_name(&self) -> &'static str {
-        "Simple Stroke"
+        "Torque"
     }
 
     fn get_description(&self) -> &'static str {
-        "Simple in and out. Sensation does nothing."
+        "Same as the simple pattern. Sensation controls the torque applied"
     }
 
     fn reset(&mut self) {
@@ -27,11 +32,13 @@ impl Pattern for Simple {
     }
 
     fn next_move(&mut self, input: &PatternInput) -> PatternMove {
+        let torque = scale(input.sensation, MIN_SENSATION, MAX_SENSATION, 0.0, 100.0);
+
         let new_move = if self.out_stroke {
-            PatternMove::new(input.velocity, input.depth)
+            PatternMove::new_with_torque(input.velocity, input.depth, torque)
         } else {
             let in_stroke_depth = input.depth - input.motion_length;
-            PatternMove::new(input.velocity, in_stroke_depth)
+            PatternMove::new_with_torque(input.velocity, in_stroke_depth, torque)
         };
         self.out_stroke = !self.out_stroke;
 

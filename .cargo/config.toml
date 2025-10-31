@@ -1,5 +1,5 @@
 [target.xtensa-esp32s3-none-elf]
-runner = "espflash flash --monitor --chip esp32s3 --log-format defmt --baud 460800"
+runner = "espflash flash --monitor --chip esp32s3 --log-format defmt"
 
 [env]
 DEFMT_LOG="info"

@@ -1,5 +1,5 @@
 use crate::{
-    config::{MAX_MOVE_MM, MIN_MOVE_MM, MOTION_CONTROL_MAX_VELOCITY, MOTION_CONTROL_MIN_VELOCITY},
+    config::{MAX_TRAVEL_MM, MOTION_CONTROL_MAX_VELOCITY, MOTION_CONTROL_MIN_VELOCITY},
     motion_control::MotionControl,
     pattern::{MAX_SENSATION, MIN_SENSATION},
     remote::ble::MAX_STATE_LENGTH,
@@ -48,7 +48,7 @@ pub struct MotionState {
 }
 
 impl MotionState {
-    pub fn as_json(self) -> String<MAX_STATE_LENGTH> {
+    pub fn as_json(&self) -> String<MAX_STATE_LENGTH> {
         let mut output = String::new();
 
         let state_name = if self.motion_enabled {
@@ -110,7 +110,7 @@ pub fn set_motion_velocity_pct(mut velocity: u32) {
     MotionControl::set_max_velocity(motion_velocity_mm_s);
 }
 
-/// Set the motion sensation in a range from -100 to 100
+/// Set the motion sensation in %
 pub fn set_motion_sensation_pct(mut sensation: u32) {
     if sensation > 100 {
         sensation = 100;
@@ -123,6 +123,7 @@ pub fn set_motion_pattern(index: u32) {
     MOTION_STATE.pattern.store(index, Ordering::Release);
 }
 
+/// Set whether the motion is enabled
 pub fn set_motion_enabled(enabled: bool) {
     MOTION_STATE
         .motion_enabled
@@ -159,20 +160,8 @@ pub struct MachineMotionState {
 impl From<MotionState> for MachineMotionState {
     fn from(value: MotionState) -> Self {
         Self {
-            depth: scale(
-                value.depth as f64,
-                0.0,
-                100.0,
-                MIN_MOVE_MM,
-                MAX_MOVE_MM as f64,
-            ),
-            motion_length: scale(
-                value.motion_length as f64,
-                0.0,
-                100.0,
-                MIN_MOVE_MM as f64,
-                MAX_MOVE_MM as f64,
-            ),
+            depth: scale(value.depth as f64, 0.0, 100.0, 0.0, MAX_TRAVEL_MM),
+            motion_length: scale(value.motion_length as f64, 0.0, 100.0, 0.0, MAX_TRAVEL_MM),
             velocity: scale(
                 value.velocity as f64,
                 0.0,
@@ -195,16 +184,16 @@ impl From<MotionState> for MachineMotionState {
 
 /// Set the motion depth in mm
 pub fn set_motion_depth_mm(depth: u32) {
-    let depth = saturate_range(depth as f64, MIN_MOVE_MM, MAX_MOVE_MM);
+    let depth = saturate_range(depth as f64, 0.0, MAX_TRAVEL_MM);
 
-    let depth_pct = scale(depth, MIN_MOVE_MM, MAX_MOVE_MM, 0.0, 100.0) as u32;
+    let depth_pct = scale(depth, 0.0, MAX_TRAVEL_MM, 0.0, 100.0) as u32;
 
     set_motion_depth_pct(depth_pct);
 }
 
 /// Set the motion length in mm
 pub fn set_motion_length_mm(length: u32) {
-    let length_pct = scale(length as f64, MIN_MOVE_MM, MAX_MOVE_MM, 0.0, 100.0) as u32;
+    let length_pct = scale(length as f64, 0.0, MAX_TRAVEL_MM, 0.0, 100.0) as u32;
 
     set_motion_length_pct(length_pct);
 }

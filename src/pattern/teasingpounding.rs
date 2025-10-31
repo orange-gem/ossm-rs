@@ -20,6 +20,10 @@ impl Pattern for TeasingPounding {
         "Teasing Pounding"
     }
 
+    fn get_description(&self) -> &'static str {
+        "Same as the simple pattern. Sensation controls speed ratio of in and out strokes"
+    }
+
     fn reset(&mut self) {
         self.out_stroke = true;
     }

@@ -4,9 +4,11 @@ use crate::motor::MotorBaudRate;
 const PULLEY_TOOTH_COUNT: f64 = 20.0;
 const BELT_PITCH: f64 = 2.0;
 // The minimum allowed move forward from the homing position
-pub const MIN_MOVE_MM: f64 = 0.0;
+pub const MIN_MOVE_MM: f64 = 10.0;
 // The maximum allowed move forward from the homing position
 pub const MAX_MOVE_MM: f64 = 190.0;
+// The max total travel distance of the machine
+pub const MAX_TRAVEL_MM: f64 = MAX_MOVE_MM - MIN_MOVE_MM;
 // The velocity at which the machine retracts when it is turned off
 // or switching to a different a pattern in mm/s
 pub const RETRACT_VELOCITY: f64 = MOTION_CONTROL_MAX_VELOCITY / 4.0;
@@ -33,6 +35,10 @@ pub const MOTION_CONTROL_MAX_JERK: f64 = 30000.0;
 pub const MAX_NO_REMOTE_HEARTBEAT_MS: u64 = 8000;
 // Motor baud rate to be used by the firmware
 pub const MOTOR_BAUD_RATE: MotorBaudRate = MotorBaudRate::Baud115200;
+// Min output in torque mode. 0-60
+pub const MOTOR_MIN_OUTPUT: f64 = 12.0;
+// Max output in torque mode. 0-60
+pub const MOTOR_MAX_OUTPUT: f64 = 60.0;
 
 // ---- BLE parameters ----
 pub const CONNECTIONS_MAX: usize = 1;

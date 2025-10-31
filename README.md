@@ -53,6 +53,17 @@ More information can be found [here](https://docs.espressif.com/projects/rust/bo
 cargo run --release --features board_<name>
 ```
 
+### First Boot
+
+When you first start the machine it may appear that nothing is working.
+
+Power cycle everything! Disconnect the motor power supply as well as the controller board for a few seconds and then reconnect everything.
+
+This is necessary the motor comes with a baudrate of 19200 from the factory.
+This is very slow and on first boot OSSM-RS will change it to 115200 which requires the motor to be power cycled to take effect.
+
+If you check the logs you should see: `Motor baudrate updated. Please power cycle the machine!`
+
 ## Remote Support
 
 - [M5 remote](https://github.com/ortlof/OSSM-M5-Remote)
@@ -88,6 +99,35 @@ Data pinout used for the diagrams (motor shaft facing down):
 Feature flag: `board_waveshare`
 
 ![WaveShare ESP32-S3-RS485-CAN](images/ESP32-S3-RS485-CAN.webp)
+
+### Seeed Studio XIAO ESP32-S3
+
+Feature flag: `board_seeed_xiao_s3`
+
+You will need:
+- Seeed Studio XIAO ESP32-S3
+- RS485 Breakout Board for Seeed Studio XIAO
+
+Notice how the 5V switch is in the OUT position and the 120R switch is in the ON position
+
+![Seeed Studio XIAO ESP32-S3](images/Seeed-Xiao-S3.webp)
+
+### M5 Atom S3
+
+Feature flag: `board_atom_s3`
+
+#### ⚠️ This board does not work out of the box and requires soldering to make it work!
+
+Instructions [here](docs/Atomic_RS485_Base/Atomic_RS485_Base_Rework.md)
+
+⚠️ This board cannot be powered directly from the motor power supply if you use above 24V!
+
+This "board" consists of a few components from the M5Stack ecosystem:
+- AtomS3-Lite
+- Atomic RS485 Base
+- Grove Cable 10 cm
+
+![M5 Atom S3](images/Atom-S3.webp)
 
 ### OSSM Reference PCB v3
 

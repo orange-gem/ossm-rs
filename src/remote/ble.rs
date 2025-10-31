@@ -1,4 +1,7 @@
-use core::fmt::Write;
+use core::{
+    fmt::Write,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use defmt::{error, info};
 use embassy_futures::select::{select, Either};
@@ -15,29 +18,44 @@ use crate::{
     pattern::PatternExecutor,
 };
 
+const SERVICE_UUID: Uuid = uuid!("522b443a-4f53-534d-0001-420badbabe69");
+const PRIMARY_COMMAND_UUID: Uuid = uuid!("522b443a-4f53-534d-1000-420badbabe69");
+const SPEED_KNOB_UUID: Uuid = uuid!("522b443a-4f53-534d-1010-420badbabe69");
+const CURRENT_STATE_UUID: Uuid = uuid!("522b443a-4f53-534d-2000-420badbabe69");
+const PATTERN_LIST_UUID: Uuid = uuid!("522b443a-4f53-534d-3000-420badbabe69");
+const PATTERN_DESCRIPTION_UUID: Uuid = uuid!("522b443a-4f53-534d-3010-420badbabe69");
+
 pub const MAX_COMMAND_LENGTH: usize = 64;
 pub const MAX_STATE_LENGTH: usize = 128;
 pub const MAX_PATTERN_LENGTH: usize = 256;
+
+static CONNECTED: AtomicBool = AtomicBool::new(false);
 
 #[gatt_server]
 struct Server {
     ossm_service: OssmService,
 }
 
-#[gatt_service(uuid = "522b443a-4f53-534d-0001-420badbabe69")]
+#[gatt_service(uuid = SERVICE_UUID)]
 struct OssmService {
-    #[characteristic(uuid = "522b443a-4f53-534d-0002-420badbabe69", read, write)]
+    #[characteristic(uuid = PRIMARY_COMMAND_UUID, read, write)]
     primary_command: String<MAX_COMMAND_LENGTH>,
-    #[characteristic(uuid = "522b443a-4f53-534d-0010-420badbabe69", read, write)]
+
+    #[characteristic(uuid = SPEED_KNOB_UUID, read, write)]
     speed_knob_characteristic: String<16>,
-    #[characteristic(uuid = "522b443a-4f53-534d-1000-420badbabe69", read, notify)]
+
+    #[characteristic(uuid = CURRENT_STATE_UUID, read, notify)]
     current_state: String<MAX_STATE_LENGTH>,
-    #[characteristic(uuid = "522b443a-4f53-534d-2000-420badbabe69", read)]
+
+    #[characteristic(uuid = PATTERN_LIST_UUID, read)]
     pattern_list: String<MAX_PATTERN_LENGTH>,
+
+    #[characteristic(uuid = PATTERN_DESCRIPTION_UUID, read, write)]
+    pattern_description: String<MAX_PATTERN_LENGTH>,
 }
 
 #[embassy_executor::task]
-pub async fn ble_events(
+pub async fn ble_events_task(
     stack: &'static Stack<
         'static,
         ExternalController<BleConnector<'static>, 20>,
@@ -78,7 +96,7 @@ pub async fn ble_events(
 
                 Timer::after_millis(100).await;
 
-                let phy = connection.read_phy(&stack).await.unwrap();
+                let phy = connection.read_phy(stack).await.unwrap();
                 let mtu = connection.att_mtu();
                 info!("PHY {} MTU {}", phy, mtu);
 
@@ -110,7 +128,7 @@ pub async fn ble_events(
 }
 
 #[embassy_executor::task]
-pub async fn ble_task(
+pub async fn ble_runner_task(
     mut runner: Runner<'static, ExternalController<BleConnector<'static>, 20>, DefaultPacketPool>,
 ) {
     loop {
@@ -132,13 +150,13 @@ async fn gatt_events_task<P: PacketPool>(
                 let mut event_handle = 0;
                 match &event {
                     GattEvent::Read(event) => {
-                        if event.handle() == server.ossm_service.pattern_list.handle {
-                            let patterns = PatternExecutor::new().get_all_patterns_json();
-                            server.set(&server.ossm_service.pattern_list, &patterns)?;
-                        }
                         if event.handle() == server.ossm_service.current_state.handle {
                             let state: String<MAX_STATE_LENGTH> = get_motion_state().as_json();
                             server.set(&server.ossm_service.current_state, &state)?;
+                        }
+                        if event.handle() == server.ossm_service.pattern_list.handle {
+                            let patterns = PatternExecutor::new().get_all_patterns_json();
+                            server.set(&server.ossm_service.pattern_list, &patterns)?;
                         }
                     }
                     GattEvent::Write(event) => {
@@ -159,16 +177,33 @@ async fn gatt_events_task<P: PacketPool>(
                 // This is here because the event needs to be accepted before the data can be accessed
                 if write {
                     if event_handle == server.ossm_service.primary_command.handle {
-                        let command: String<64> =
+                        let command: String<MAX_COMMAND_LENGTH> =
                             server.get(&server.ossm_service.primary_command)?;
 
                         process_command(&command, server);
+                    }
+                    if event_handle == server.ossm_service.pattern_description.handle {
+                        let command: String<MAX_PATTERN_LENGTH> =
+                            server.get(&server.ossm_service.pattern_description)?;
+
+                        let description = if let Ok(index) = command.parse::<usize>() {
+                            PatternExecutor::new().get_pattern_description(index)
+                        } else {
+                            let mut description: String<MAX_PATTERN_LENGTH> = String::new();
+                            description
+                                .push_str("Could not parse pattern index")
+                                .expect("Always fits");
+                            description
+                        };
+
+                        server.set(&server.ossm_service.pattern_description, &description)?;
                     }
                 }
             }
             _ => {} // ignore other Gatt Connection Events
         }
     };
+    CONNECTED.store(false, Ordering::Release);
     info!("[gatt] disconnected: {:?}", reason);
     Ok(())
 }
@@ -178,11 +213,16 @@ async fn advertise<'values, 'server, C: Controller>(
     name: &'values str,
     peripheral: &mut Peripheral<'values, C, DefaultPacketPool>,
 ) -> Result<Connection<'values, DefaultPacketPool>, BleHostError<C::Error>> {
+    let uuid: [u8; 16] = SERVICE_UUID
+        .as_raw()
+        .try_into()
+        .expect("Service UUID incorrect");
+
     let mut advertiser_data = [0; 31];
     let len = AdStructure::encode_slice(
         &[
             AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
-            AdStructure::ServiceUuids16(&[[0x0f, 0x18]]),
+            AdStructure::ServiceUuids128(&[uuid]),
             AdStructure::CompleteLocalName(name.as_bytes()),
         ],
         &mut advertiser_data[..],
@@ -198,6 +238,7 @@ async fn advertise<'values, 'server, C: Controller>(
         .await?;
     info!("[adv] advertising");
     let conn = advertiser.accept().await?;
+    CONNECTED.store(true, Ordering::Release);
     info!("[adv] connection established");
     Ok(conn)
 }
@@ -212,7 +253,7 @@ async fn state_notifications<P: PacketPool>(
         server
             .ossm_service
             .current_state
-            .notify(&connection, &state)
+            .notify(connection, &state)
             .await?;
         ticker.next().await;
     }
@@ -309,4 +350,8 @@ fn process_command(command: &String<MAX_COMMAND_LENGTH>, server: &Server<'_>) {
     if let Err(err) = server.set(&server.ossm_service.primary_command, &response_str) {
         error!("Failed to write the response to a set command {:?}", err);
     }
+}
+
+pub fn is_ble_connected() -> bool {
+    CONNECTED.load(Ordering::Acquire)
 }

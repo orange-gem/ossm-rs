@@ -33,6 +33,10 @@ impl Pattern for StopNGo {
         "Stop'n'Go"
     }
 
+    fn get_description(&self) -> &'static str {
+        "Stops after a series of strokes. Sensation controls the delay between each series"
+    }
+
     fn reset(&mut self) {
         self.out_stroke = true;
         self.num_strokes = 1;

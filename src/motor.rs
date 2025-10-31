@@ -292,6 +292,7 @@ impl Motor {
         Ok(())
     }
 
+    /// Set the motor baud rate
     pub fn set_baud_rate(&mut self, baud_rate: MotorBaudRate) -> Result<(), MotorError> {
         // Magic sequence
         self.write_register(&ReadWriteMotorRegisters::ModbusEnable, 1)?;
@@ -366,11 +367,17 @@ impl Motor {
         self.write_register(&ReadWriteMotorRegisters::MotorTargetSpeed, speed)
     }
 
+    /// Get the target acceleration 0-59999. 60000 means disabled
+    pub fn get_target_acceleration(&mut self) -> Result<u16, MotorError> {
+        self.read_register(&ReadWriteMotorRegisters::MotorAcceleration)
+    }
+
     /// 0-59999. 60000 means disabled
     pub fn set_target_acceleration(&mut self, acceleration: u16) -> Result<(), MotorError> {
         self.write_register(&ReadWriteMotorRegisters::MotorAcceleration, acceleration)
     }
 
+    /// Set the speed proportional coefficient
     pub fn set_speed_proportional_coefficient(
         &mut self,
         coefficient: u16,
@@ -381,6 +388,7 @@ impl Motor {
         )
     }
 
+    /// Set the position proportional coefficient
     pub fn set_position_proportional_coefficient(
         &mut self,
         coefficient: u16,
@@ -406,10 +414,14 @@ impl Motor {
         Ok(absolute_position)
     }
 
+    /// Get the maximum allowed output in the standstill
     pub fn get_max_allowed_output(&mut self) -> Result<u16, MotorError> {
         self.read_register(&ReadWriteMotorRegisters::StandstillMaxOutput)
     }
 
+    /// Set the maximum allowed output in the standstill
+    /// First two digits 0-60 represent the output
+    /// Last digit 0-9 represents the alarm. 0 means no alarm and the output is reduced by half after 3 s
     pub fn set_max_allowed_output(&mut self, output: u16) -> Result<(), MotorError> {
         self.write_register(&ReadWriteMotorRegisters::StandstillMaxOutput, output)
     }
