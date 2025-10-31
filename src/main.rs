@@ -6,6 +6,9 @@
     holding buffers for the duration of a data transfer."
 )]
 
+#[cfg(not(feature = "board_selected"))]
+compile_error!("No board selected!");
+
 mod board;
 mod config;
 mod motion;
@@ -33,6 +36,7 @@ use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::signal::Signal;
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Timer};
+use esp_hal::gpio::{Level, Output};
 use esp_hal::{
     clock::CpuClock,
     gpio::Pin,
@@ -81,7 +85,7 @@ async fn main(spawner: Spawner) {
     esp_alloc::heap_allocator!(size: 128 * 1024);
 
     // Dummy board to avoid LSP complaints
-    #[cfg(feature = "board_dummy")]
+    #[cfg(not(feature = "board_selected"))]
     let pins = {
         Pins {
             rs485_rx: peripherals.GPIO35.degrade(),
@@ -119,7 +123,8 @@ async fn main(spawner: Spawner) {
         Pins {
             rs485_rx: peripherals.GPIO6.degrade(),
             rs485_tx: peripherals.GPIO5.degrade(),
-            rs485_dtr: Some(peripherals.GPIO3.degrade()),
+            rs485_transmit_enable: Some(peripherals.GPIO3.degrade()),
+            rs485_receive_enable_inv: None,
         }
     };
 
@@ -129,7 +134,8 @@ async fn main(spawner: Spawner) {
         Pins {
             rs485_rx: peripherals.GPIO5.degrade(),
             rs485_tx: peripherals.GPIO6.degrade(),
-            rs485_dtr: Some(peripherals.GPIO7.degrade()),
+            rs485_transmit_enable: Some(peripherals.GPIO7.degrade()),
+            rs485_receive_enable_inv: None,
         }
     };
 
@@ -139,7 +145,8 @@ async fn main(spawner: Spawner) {
         Pins {
             rs485_rx: peripherals.GPIO35.degrade(),
             rs485_tx: peripherals.GPIO37.degrade(),
-            rs485_dtr: Some(peripherals.GPIO36.degrade()),
+            rs485_transmit_enable: Some(peripherals.GPIO36.degrade()),
+            rs485_receive_enable_inv: None,
         }
     };
 
