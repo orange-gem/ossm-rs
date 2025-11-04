@@ -14,7 +14,8 @@ const PROTO: ModbusProto = ModbusProto::Rtu;
 const MIN_REG_READ_REQUIRED: usize = 3;
 
 const MOTOR_TIMEOUT_MS: u64 = 10;
-const MOTOR_CONSECUTIVE_READ_DELAY_US: u64 = 2000;
+const MOTOR_SHORT_TIMEOUT_MS: u64 = 3;
+pub const MOTOR_CONSECUTIVE_READ_DELAY_US: u64 = 2000;
 
 const MAX_REG_READ_AT_ONCE: usize = 8;
 
@@ -152,8 +153,12 @@ impl Motor {
         self.timer.clear_interrupt();
     }
 
-    fn read_with_timeout(&mut self, mut buf: &mut [u8]) -> Result<(), MotorError> {
-        self.start_timer_delay(Duration::from_millis(MOTOR_TIMEOUT_MS));
+    fn read_with_given_timeout(
+        &mut self,
+        mut buf: &mut [u8],
+        timeout_ms: u64,
+    ) -> Result<(), MotorError> {
+        self.start_timer_delay(Duration::from_millis(timeout_ms));
 
         while !buf.is_empty() && !self.timer.is_interrupt_set() {
             match self.rs485.read_buffered(buf) {
@@ -172,6 +177,10 @@ impl Motor {
         }
 
         Ok(())
+    }
+
+    fn read_with_timeout(&mut self, buf: &mut [u8]) -> Result<(), MotorError> {
+        self.read_with_given_timeout(buf, MOTOR_TIMEOUT_MS)
     }
 
     /// Write one motor register
@@ -279,7 +288,7 @@ impl Motor {
         self.rs485.flush().expect("Failed to flush RS485");
 
         let mut response = [0u8; 32];
-        self.read_with_timeout(&mut response[0..8])?;
+        self.read_with_given_timeout(&mut response[0..8], MOTOR_SHORT_TIMEOUT_MS)?;
 
         if response[0..2] != [0x1, 0x7b] {
             error!(

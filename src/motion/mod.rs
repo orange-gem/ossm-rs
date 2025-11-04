@@ -56,7 +56,7 @@ pub fn wait_for_home(motor: &mut Motor) {
     // Enabling modbus seems to reset the target speed and the max allowed output to default
     motor.enable_modbus(true).expect("Failed to enable modbus");
 
-    motor.delay(esp_hal::time::Duration::from_millis(300));
+    motor.delay(esp_hal::time::Duration::from_millis(800));
 
     let mut new_steps = MIN_MOVE_MM * STEPS_PER_MM;
     if !REVERSE_DIRECTION {

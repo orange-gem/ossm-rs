@@ -6,12 +6,18 @@ use core::{
 
 use critical_section::Mutex;
 use defmt::{debug, error, info};
-use esp_hal::{handler, interrupt::Priority, time::Instant, timer::PeriodicTimer, Blocking};
+use esp_hal::{
+    handler,
+    interrupt::Priority,
+    time::{Duration, Instant},
+    timer::PeriodicTimer,
+    Blocking,
+};
 use rsruckig::prelude::*;
 
 use crate::{
     config::*,
-    motor::Motor,
+    motor::{Motor, MOTOR_CONSECUTIVE_READ_DELAY_US},
     utils::{saturate_range, scale},
 };
 
@@ -24,6 +30,8 @@ static MOVE_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
 // Whether to panic on the thresholds being exceeded by motion control
 // If false the values will be capped to the allowed limits, but the execution will continue
 const PANIC_ON_EXCEEEDED: bool = false;
+
+const VELOCITY_UPDATE_COOLDOWN_MS: u64 = 30;
 
 // Timer interrupt
 #[handler(priority = Priority::Priority2)]
@@ -48,6 +56,9 @@ pub struct MotionControl {
     input: InputParameter<1>,
     output: OutputParameter<1>,
     last_update: Instant,
+    velocity_setpoint: f64,
+    last_velocity_update: Instant,
+    last_motor_write: Instant,
 }
 
 impl MotionControl {
@@ -79,6 +90,9 @@ impl MotionControl {
             input,
             output: OutputParameter::new(None),
             last_update: Instant::now(),
+            velocity_setpoint: MOTION_CONTROL_MAX_VELOCITY,
+            last_velocity_update: Instant::now(),
+            last_motor_write: Instant::now(),
         };
 
         critical_section::with(|cs| {
@@ -91,7 +105,19 @@ impl MotionControl {
     /// This is handled by the UPDATE_TIMER interrupt
     pub fn update_handler(&mut self) {
         if MOVE_IN_PROGRESS.load(Ordering::Acquire) {
-            let before = Instant::now();
+            let start = Instant::now();
+
+            // Restrict how often the velocity can be updated
+            // Updating it too often can lead to unstable motion
+            if self.velocity_setpoint != self.input.max_velocity[0]
+                && self.last_velocity_update.elapsed().as_millis() > VELOCITY_UPDATE_COOLDOWN_MS
+            {
+                self.input.max_velocity[0] = self.velocity_setpoint;
+                self.output.time = 0.0;
+                self.last_velocity_update = Instant::now();
+                info!("Set velocity to {} mm/s", self.velocity_setpoint);
+            }
+
             let res = self.ruckig.update(&self.input, &mut self.output);
 
             let since_last = self.last_update.elapsed().as_micros();
@@ -131,13 +157,23 @@ impl MotionControl {
                             if !REVERSE_DIRECTION {
                                 new_steps = -new_steps;
                             }
+
+                            // Avoid writing to the motor too often to prevent a timeout
+                            let us_since_last_motor_write =
+                                self.last_motor_write.elapsed().as_micros();
+                            if us_since_last_motor_write < MOTOR_CONSECUTIVE_READ_DELAY_US {
+                                self.motor.delay(Duration::from_micros(
+                                    MOTOR_CONSECUTIVE_READ_DELAY_US - us_since_last_motor_write,
+                                ));
+                            }
+
                             if let Err(err) = self.motor.set_absolute_position(new_steps as i32) {
                                 error!("Failed to set motor position {}", err);
                             }
+                            self.last_motor_write = Instant::now();
 
-                            debug!("Set motor position {}", new_position);
+                            debug!("Set motor position to {} mm", new_position);
 
-                            // info!("PROG");
                             self.output.pass_to_input(&mut self.input);
                         }
                         RuckigResult::Finished => {
@@ -151,7 +187,6 @@ impl MotionControl {
                                     .cancel()
                                     .ok();
                             });
-                            // info!("DONE");
                         }
                         _ => {
                             error!("Error!");
@@ -162,7 +197,9 @@ impl MotionControl {
                     error!("Ruckig Error {}", defmt::Debug2Format(&err));
                 }
             }
-            let duration_ms = before.elapsed().as_millis();
+
+            let duration_ms = start.elapsed().as_millis();
+
             debug!(
                 "Update took: {} ms Since last call: {} us",
                 duration_ms, since_last
@@ -184,7 +221,7 @@ impl MotionControl {
             let mut motion_control = MOTION_CONTROL.borrow_ref_mut(cs);
             let motion_control = motion_control.as_mut().unwrap();
 
-            // info!("Going to a new target position {}", position as f32);
+            debug!("Going to a new target position: {} mm", position);
             motion_control.input.target_position[0] = position;
             motion_control.output.time = 0.0;
 
@@ -215,15 +252,15 @@ impl MotionControl {
             }
 
             if max_velocity <= MOTION_CONTROL_MAX_VELOCITY {
-                motion_control.input.max_velocity[0] = max_velocity;
+                motion_control.velocity_setpoint = max_velocity;
             } else {
                 error!(
                     "Velocity {} is larger than allowed {}",
                     max_velocity, MOTION_CONTROL_MAX_VELOCITY
                 );
-                motion_control.input.max_velocity[0] = MOTION_CONTROL_MAX_VELOCITY;
+                motion_control.velocity_setpoint = MOTION_CONTROL_MAX_VELOCITY;
             }
-            motion_control.output.time = 0.0;
+            motion_control.last_velocity_update = Instant::now();
         });
     }
 
