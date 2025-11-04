@@ -129,6 +129,14 @@ This "board" consists of a few components from the M5Stack ecosystem:
 
 ![M5 Atom S3](images/Atom-S3.webp)
 
+### OSSM Reference PCB v3
+
+Feature flag: `board_ossm_v3`
+
+The not yet released board from [here](https://github.com/KinkyMakers/OSSM-hardware/tree/xpi/PCB-v3/Hardware/PCB%20Files/OSSM%20Reference%20PCB%20V3)
+
+![OSSM Reference PCB v3](images/OSSM-Reference-PCB-v3.webp)
+
 ### Custom Board
 
 Feature flag: `board_custom`
