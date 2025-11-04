@@ -41,7 +41,7 @@ More information can be found [here](https://docs.espressif.com/projects/rust/bo
 
 ### Compiling And Uploading
 
-1. See the [board support](#board-support) section to see if your board is supported and use the feature flag in the next step
+1. See the [supported boards](docs/supported_boards.md) section to see if your board is supported and use the feature flag in the next step
 
 2. If on Linux or MacOS set the environment variables with:
 ```bash
@@ -59,10 +59,14 @@ When you first start the machine it may appear that nothing is working.
 
 Power cycle everything! Disconnect the motor power supply as well as the controller board for a few seconds and then reconnect everything.
 
-This is necessary the motor comes with a baudrate of 19200 from the factory.
+This is necessary because the motor comes with a baudrate of 19200 from the factory.
 This is very slow and on first boot OSSM-RS will change it to 115200 which requires the motor to be power cycled to take effect.
 
 If you check the logs you should see: `Motor baudrate updated. Please power cycle the machine!`
+
+## Board Support
+
+### See [supported boards](docs/supported_boards.md)
 
 ## Remote Support
 
@@ -74,10 +78,10 @@ If you check the logs you should see: `Motor baudrate updated. Please power cycl
 ### 57AIMxx RS485
 
 Power pinout (motor shaft facing up):
-![Motor Power Pins](images/power-pinout.jpg)
+![Motor Power Pins](docs/images/power-pinout.jpg)
 
 Data pinout used for the diagrams (motor shaft facing down):
-![Motor Data Pins](images/data-pinout.jpg)
+![Motor Data Pins](docs/images/data-pinout.jpg)
 
 | Pin # | Function    | Description                                           |
 |-------|-------------|-------------------------------------------------------|
@@ -92,62 +96,13 @@ Data pinout used for the diagrams (motor shaft facing down):
 | 9     | ZO          | Encoder zero                                          |
 | 10    | RS485_Power | 5V in the datasheet, but seems to take 3.3V just fine |
 
-## Board Support
-
-### WaveShare ESP32-S3-RS485-CAN (default)
-
-Feature flag: `board_waveshare`
-
-![WaveShare ESP32-S3-RS485-CAN](images/ESP32-S3-RS485-CAN.webp)
-
-### Seeed Studio XIAO ESP32-S3
-
-Feature flag: `board_seeed_xiao_s3`
-
-You will need:
-- Seeed Studio XIAO ESP32-S3
-- RS485 Breakout Board for Seeed Studio XIAO
-
-Notice how the 5V switch is in the OUT position and the 120R switch is in the ON position
-
-![Seeed Studio XIAO ESP32-S3](images/Seeed-Xiao-S3.webp)
-
-### M5 Atom S3
-
-Feature flag: `board_atom_s3`
-
-#### ⚠️ This board does not work out of the box and requires soldering to make it work!
-
-Instructions [here](docs/Atomic_RS485_Base/Atomic_RS485_Base_Rework.md)
-
-⚠️ This board cannot be powered directly from the motor power supply if you use above 24V!
-
-This "board" consists of a few components from the M5Stack ecosystem:
-- AtomS3-Lite
-- Atomic RS485 Base
-- Grove Cable 10 cm
-
-![M5 Atom S3](images/Atom-S3.webp)
-
-### OSSM Reference PCB v3
-
-Feature flag: `board_ossm_v3`
-
-The not yet released board from [here](https://github.com/KinkyMakers/OSSM-hardware/tree/xpi/PCB-v3/Hardware/PCB%20Files/OSSM%20Reference%20PCB%20V3)
-
-![OSSM Reference PCB v3](images/OSSM-Reference-PCB-v3.webp)
-
-### Custom Board
-
-Feature flag: `board_custom`
-
-Set pins in `main.rs` manually
-
 ## Patterns
 
-### Default Patterns
+### Built-In Patterns
 
-The following patterns are supported:
+#### OSSM Patterns
+
+These are designed to closely mimic the patterns provided by the stock OSSM firmware
 
 - Simple
 - TeasingPounding
@@ -155,7 +110,12 @@ The following patterns are supported:
 - Deeper
 - StopNGo
 
-They are designed to closely mimic the patterns provided by the stock OSSM firmware.
+#### OSSM-RS Patterns
+
+These are designed to take advantage of the features provided by OSSM-RS
+
+- Torque
+
 
 ### Making Custom Patterns
 
