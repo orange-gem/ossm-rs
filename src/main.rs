@@ -84,6 +84,9 @@ async fn main(spawner: Spawner) {
 
     esp_alloc::heap_allocator!(size: 128 * 1024);
 
+    info!("Welcome to ossm-rs");
+    info!("Version: {}", env!("VERGEN_GIT_DESCRIBE"));
+
     // Dummy board to avoid LSP complaints
     #[cfg(not(feature = "board_selected"))]
     let pins = {

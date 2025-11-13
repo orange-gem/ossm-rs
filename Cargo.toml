@@ -73,6 +73,9 @@ rsruckig = { default-features = false, features = [
     "alloc",
 ], git = "https://github.com/petrikosk/rsruckig.git" }
 
+[build-dependencies]
+vergen-gitcl = { version = "1.0.8", features = [] }
+
 [features]
 board_selected = []
 
