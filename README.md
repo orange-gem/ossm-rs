@@ -77,6 +77,8 @@ If you check the logs you should see: `Motor baudrate updated. Please power cycl
 
 ### 57AIMxx RS485
 
+Connect a ~1500uF >50V capacitor between the power pins. 2200uF 63v was found to work well
+
 Power pinout (motor shaft facing up):
 ![Motor Power Pins](docs/images/power-pinout.jpg)
 

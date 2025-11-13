@@ -24,7 +24,7 @@ Feature flag: `board_atom_s3`
 
 #### ⚠️ This board does not work out of the box and requires soldering to make it work!
 
-Instructions [here](docs/Atomic_RS485_Base/Atomic_RS485_Base_Rework.md)
+Instructions [here](Atomic_RS485_Base/Atomic_RS485_Base_Rework.md)
 
 ⚠️ This board cannot be powered directly from the motor power supply if you use above 24V!
 
