@@ -43,8 +43,7 @@ use esp_hal::{
     interrupt::software::SoftwareInterruptControl,
     interrupt::Priority,
     peripherals::Peripherals,
-    system::Stack,
-    timer::{timg::TimerGroup, PeriodicTimer},
+    timer::{timg::TimerGroup, PeriodicTimer, systimer::SystemTimer},
     uart::{self, Instance, Uart},
 };
 use esp_radio::{
@@ -58,6 +57,9 @@ use trouble_host::{
     prelude::{DefaultPacketPool, ExternalController},
     Host, HostResources,
 };
+
+#[cfg(feature = "multicore")]
+use esp_hal::system::Stack;
 
 use {esp_backtrace as _, esp_println as _};
 
@@ -142,9 +144,9 @@ async fn main(spawner: Spawner) {
         }
     };
 
-    #[cfg(feature = "board_custom")]
+    #[cfg(feature = "board_custom_s3")]
     let pins = {
-        info!("Board: custom");
+        info!("Board: Custom S3");
         Pins {
             rs485_rx: peripherals.GPIO35.degrade(),
             rs485_tx: peripherals.GPIO37.degrade(),
@@ -153,11 +155,30 @@ async fn main(spawner: Spawner) {
         }
     };
 
+    #[cfg(feature = "board_custom_c6")]
+    let pins = {
+        info!("Board: Custom C6");
+        Pins {
+            rs485_rx: peripherals.GPIO22.degrade(),
+            rs485_tx: peripherals.GPIO20.degrade(),
+            rs485_transmit_enable: Some(peripherals.GPIO21.degrade()),
+            rs485_receive_enable_inv: None,
+        }
+    };
+
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
     let timg0 = TimerGroup::new(peripherals.TIMG0);
-    esp_rtos::start(timg0.timer0);
+    let systimer = SystemTimer::new(peripherals.SYSTIMER);
 
+    esp_rtos::start(
+        systimer.alarm0,
+        #[cfg(target_arch = "riscv32")]
+        sw_int.software_interrupt0
+    );
+
+    #[cfg(feature = "multicore")]
     static APP_CORE_STACK: StaticCell<Stack<16384>> = StaticCell::new();
+    #[cfg(feature = "multicore")]
     let app_core_stack = APP_CORE_STACK.init(Stack::new());
 
     // The regular executor seems to freeze
@@ -192,6 +213,8 @@ async fn main(spawner: Spawner) {
             let regs = rs.info().regs();
             regs.rs485_conf()
                 .modify(|_, w| w.rs485_en().set_bit().dl1_en().set_bit());
+            #[cfg(feature = "esp32c6")]
+            regs.reg_update().modify(|_, w| w.reg_update().set_bit());
         }
 
         let timg1 = TimerGroup::new(peripherals.TIMG1);
@@ -243,7 +266,7 @@ async fn main(spawner: Spawner) {
 
         set_motor_settings(&mut motor);
 
-        let update_timer = PeriodicTimer::new(timg1.timer1);
+        let update_timer = PeriodicTimer::new(timg0.timer0);
         MotionControl::init(update_timer, motor);
 
         let executor_core1 = InterruptExecutor::new(sw_int.software_interrupt2);
@@ -254,9 +277,11 @@ async fn main(spawner: Spawner) {
 
         MOTION_INIT_SIGNAL.signal(true);
 
+        #[cfg(feature = "multicore")]
         loop {}
     };
 
+    #[cfg(feature = "multicore")]
     esp_rtos::start_second_core(
         peripherals.CPU_CTRL,
         #[cfg(target_arch = "xtensa")]
@@ -265,6 +290,9 @@ async fn main(spawner: Spawner) {
         app_core_stack,
         second_core_function,
     );
+
+    #[cfg(not(feature = "multicore"))]
+    second_core_function();
 
     MOTION_INIT_SIGNAL.wait().await;
 

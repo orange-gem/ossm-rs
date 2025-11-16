@@ -50,7 +50,7 @@ More information can be found [here](https://docs.espressif.com/projects/rust/bo
 
 3. Compile with and upload with:
 ```bash
-cargo run --release --features board_<name>
+cargo xtask run <board_name>
 ```
 
 ### First Boot

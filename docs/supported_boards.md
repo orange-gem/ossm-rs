@@ -2,13 +2,13 @@
 
 ### WaveShare ESP32-S3-RS485-CAN (recommended)
 
-Feature flag: `board_waveshare`
+board_name: `waveshare`
 
 ![WaveShare ESP32-S3-RS485-CAN](images/ESP32-S3-RS485-CAN.webp)
 
 ### Seeed Studio XIAO ESP32-S3
 
-Feature flag: `board_seeed_xiao_s3`
+board_name: `seeed_xiao_s3`
 
 You will need:
 - Seeed Studio XIAO ESP32-S3
@@ -20,7 +20,7 @@ Notice how the 5V switch is in the OUT position and the 120R switch is in the ON
 
 ### M5 Atom S3
 
-Feature flag: `board_atom_s3`
+board_name: `atom_s3`
 
 #### ⚠️ This board does not work out of the box and requires soldering to make it work!
 
@@ -37,7 +37,7 @@ This "board" consists of a few components from the M5Stack ecosystem:
 
 ### OSSM Reference PCB v3
 
-Feature flag: `board_ossm_v3`
+board_name: `ossm_v3`
 
 The not yet released board from [here](https://github.com/KinkyMakers/OSSM-hardware/tree/xpi/PCB-v3/Hardware/PCB%20Files/OSSM%20Reference%20PCB%20V3)
 
@@ -45,6 +45,12 @@ The not yet released board from [here](https://github.com/KinkyMakers/OSSM-hardw
 
 ### Custom Board
 
-Feature flag: `board_custom`
+board_name: `custom_s3`
+
+Set pins in `main.rs` manually
+
+### Custom C6 Board
+
+board_name: `custom_c6`
 
 Set pins in `main.rs` manually
