@@ -31,6 +31,11 @@ pub const MOTION_CONTROL_MAX_VELOCITY: f64 = 600.0;
 pub const MOTION_CONTROL_MAX_ACCELERATION: f64 = 10000.0;
 // In mm/s³
 pub const MOTION_CONTROL_MAX_JERK: f64 = 30000.0;
+// pub const MOTION_CONTROL_MAX_VELOCITY: f64 = 10000.0;
+// // In mm/s²
+// pub const MOTION_CONTROL_MAX_ACCELERATION: f64 = 100000.0;
+// // In mm/s³
+// pub const MOTION_CONTROL_MAX_JERK: f64 = 100000.0;
 // Turn the machine off after no heartbeat was received for this long
 pub const MAX_NO_REMOTE_HEARTBEAT_MS: u64 = 8000;
 // Motor baud rate to be used by the firmware

@@ -61,8 +61,12 @@ fn linker_be_nice() {
         std::process::exit(0);
     }
 
+    let arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or("".to_string());
+    let wl = if arch == "xtensa" { "-Wl," } else { "" };
+
     println!(
-        "cargo:rustc-link-arg=-Wl,--error-handling-script={}",
+        "cargo:rustc-link-arg={}--error-handling-script={}",
+        wl,
         std::env::current_exe().unwrap().display()
     );
 }
