@@ -144,6 +144,17 @@ async fn main(spawner: Spawner) {
         }
     };
 
+    #[cfg(feature = "board_ossm_alt_v2")]
+    let pins = {
+        info!("Board: OSSM Alt Edition v2");
+        Pins {
+            rs485_rx: peripherals.GPIO22.degrade(),
+            rs485_tx: peripherals.GPIO20.degrade(),
+            rs485_transmit_enable: Some(peripherals.GPIO21.degrade()),
+            rs485_receive_enable_inv: None,
+        }
+    };
+
     #[cfg(feature = "board_custom_s3")]
     let pins = {
         info!("Board: Custom S3");

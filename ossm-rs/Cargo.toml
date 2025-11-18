@@ -97,6 +97,7 @@ board_waveshare = ["board_selected", "esp32s3"]
 board_seeed_xiao_s3 = ["board_selected", "esp32s3"]
 board_atom_s3 = ["board_selected", "esp32s3"]
 board_ossm_v3 = ["board_selected", "esp32s3"]
+board_ossm_alt_v2 = ["board_selected", "esp32c6"]
 board_custom_s3 = ["board_selected", "esp32s3"]
 board_custom_c6 = ["board_selected", "esp32c6"]
 

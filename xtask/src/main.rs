@@ -89,7 +89,6 @@ fn build_and_run() -> Result<(), DynError> {
     println!("Starting the build for {}", board.name);
     println!("Building in {}", project_root().to_str().unwrap());
 
-
     let toolchain = ToolchainFile {
         toolchain: board.mcu.toolchain(),
     };
@@ -155,10 +154,9 @@ fn board() -> Result<Board, DynError> {
             | x @ "atom_s3"
             | x @ "ossm_v3"
             | x @ "custom" => (x, Mcu::Esp32S3),
-            x @ "custom_c6" => (x, Mcu::Esp32C6),
+            x @ "custom_c6" | x @ "ossm_alt_v2" => (x, Mcu::Esp32C6),
             x => Err(format!("Invalid board: {}", x))?,
         };
-
 
         Ok(Board {
             name: name.to_string(),

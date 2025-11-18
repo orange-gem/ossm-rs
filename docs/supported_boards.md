@@ -1,10 +1,22 @@
-# Supported Boards
+# Supported Boards (tested to work)
 
-### WaveShare ESP32-S3-RS485-CAN (recommended)
+## Recommended Boards
+
+### WaveShare ESP32-S3-RS485-CAN
 
 board_name: `waveshare`
 
 ![WaveShare ESP32-S3-RS485-CAN](images/ESP32-S3-RS485-CAN.webp)
+
+### OSSM Alt PCB v2
+
+board_name: `ossm_alt_v2`
+
+A cheap and compact C6 board with 28V USB-PD
+
+The project can be found [here](https://github.com/jollydodo/OSSM-ALT-Edition)
+
+## Alright Boards
 
 ### Seeed Studio XIAO ESP32-S3
 
@@ -17,6 +29,16 @@ You will need:
 Notice how the 5V switch is in the OUT position and the 120R switch is in the ON position
 
 ![Seeed Studio XIAO ESP32-S3](images/Seeed-Xiao-S3.webp)
+
+### OSSM Reference PCB v3
+
+board_name: `ossm_v3`
+
+The not yet released board from [here](https://github.com/KinkyMakers/OSSM-hardware/tree/xpi/PCB-v3/Hardware/PCB%20Files/OSSM%20Reference%20PCB%20V3)
+
+![OSSM Reference PCB v3](images/OSSM-Reference-PCB-v3.webp)
+
+## Not Recommended Boards
 
 ### M5 Atom S3
 
@@ -35,15 +57,9 @@ This "board" consists of a few components from the M5Stack ecosystem:
 
 ![M5 Atom S3](images/Atom-S3.webp)
 
-### OSSM Reference PCB v3
+## Custom Boards
 
-board_name: `ossm_v3`
-
-The not yet released board from [here](https://github.com/KinkyMakers/OSSM-hardware/tree/xpi/PCB-v3/Hardware/PCB%20Files/OSSM%20Reference%20PCB%20V3)
-
-![OSSM Reference PCB v3](images/OSSM-Reference-PCB-v3.webp)
-
-### Custom Board
+### Custom S3 Board
 
 board_name: `custom_s3`
 
