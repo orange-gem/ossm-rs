@@ -1,9 +1,14 @@
+use core::f64::INFINITY;
+
 use defmt::info;
 use embassy_time::{Duration, Ticker, Timer};
 pub mod motion_state;
 
 use crate::{
-    config::{MIN_MOVE_MM, RETRACT_VELOCITY, REVERSE_DIRECTION, STEPS_PER_MM},
+    config::{
+        MIN_MOVE_MM, MOTION_CONTROL_MIN_VELOCITY, RETRACT_ON_MOTION_DISABLED, RETRACT_VELOCITY,
+        REVERSE_DIRECTION, STEPS_PER_MM,
+    },
     motion::motion_state::{get_motion_state, MachineMotionState},
     motion_control::MotionControl,
     motor::{Motor, MAX_MOTOR_SPEED_RPM},
@@ -91,7 +96,7 @@ async fn retract() {
 
 #[embassy_executor::task]
 pub async fn run_motion() {
-    let mut ticker = Ticker::every(Duration::from_millis(30));
+    let mut ticker = Ticker::every(Duration::from_millis(10));
     let mut prev_motion_enabled = false;
 
     let mut pattern_executor = PatternExecutor::new();
@@ -99,8 +104,8 @@ pub async fn run_motion() {
     let mut pattern_move = PatternMove::default();
     let mut prev_pattern_move = PatternMove::default();
     // Values to be overriden on the first move
-    prev_pattern_move.velocity = -420.0;
-    prev_pattern_move.torque = -420.0;
+    prev_pattern_move.velocity = INFINITY;
+    prev_pattern_move.torque = INFINITY;
 
     info!("Task Motion Started");
 
@@ -109,8 +114,19 @@ pub async fn run_motion() {
 
         // Retract the machine if motion was disabled
         if !motion_state.motion_enabled && prev_motion_enabled {
-            pattern_executor.reset();
-            retract().await;
+            if RETRACT_ON_MOTION_DISABLED {
+                pattern_executor.reset();
+                retract().await;
+            } else {
+                MotionControl::set_max_velocity(MOTION_CONTROL_MIN_VELOCITY);
+            }
+        }
+
+        if motion_state.motion_enabled && !prev_motion_enabled {
+            // Restore the previous velocity
+            if !RETRACT_ON_MOTION_DISABLED {
+                MotionControl::set_max_velocity(pattern_move.velocity);
+            }
         }
 
         if motion_state.pattern != prev_pattern {
@@ -148,8 +164,9 @@ pub async fn run_motion() {
             MotionControl::set_target_position(pattern_move.position);
 
             prev_pattern_move = pattern_move;
+        } else {
+            ticker.next().await;
         }
-        ticker.next().await;
 
         prev_motion_enabled = motion_state.motion_enabled;
     }
