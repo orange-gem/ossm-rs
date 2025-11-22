@@ -16,6 +16,8 @@ A cheap and compact C6 board with 28V USB-PD
 
 The project can be found [here](https://github.com/jollydodo/OSSM-ALT-Edition)
 
+![OSSM Alt PCB v2](images/OSSM-Alt-PCB-V2.webp)
+
 ## Alright Boards
 
 ### Seeed Studio XIAO ESP32-S3
