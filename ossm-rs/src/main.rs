@@ -40,10 +40,12 @@ use esp_hal::gpio::{Level, Output};
 use esp_hal::{
     clock::CpuClock,
     gpio::Pin,
+    i2c::{self, master::I2c},
     interrupt::software::SoftwareInterruptControl,
     interrupt::Priority,
     peripherals::Peripherals,
-    timer::{timg::TimerGroup, PeriodicTimer, systimer::SystemTimer},
+    time::Rate,
+    timer::{systimer::SystemTimer, timg::TimerGroup, PeriodicTimer},
     uart::{self, Instance, Uart},
 };
 use esp_radio::{
@@ -178,13 +180,12 @@ async fn main(spawner: Spawner) {
     };
 
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
-    let timg0 = TimerGroup::new(peripherals.TIMG0);
     let systimer = SystemTimer::new(peripherals.SYSTIMER);
 
     esp_rtos::start(
         systimer.alarm0,
         #[cfg(target_arch = "riscv32")]
-        sw_int.software_interrupt0
+        sw_int.software_interrupt0,
     );
 
     #[cfg(feature = "multicore")]
@@ -228,11 +229,12 @@ async fn main(spawner: Spawner) {
             regs.reg_update().modify(|_, w| w.reg_update().set_bit());
         }
 
+        let timg0 = TimerGroup::new(peripherals.TIMG0);
         let timg1 = TimerGroup::new(peripherals.TIMG1);
 
         // Wait for the motor to boot up
 
-        let mut motor = Motor::new(rs485, timg1.timer0.into());
+        let mut motor = Motor::new(rs485, timg0.timer0.into());
         motor.delay(esp_hal::time::Duration::from_millis(500));
 
         // Try to read a register to see if the motor is online
@@ -277,7 +279,7 @@ async fn main(spawner: Spawner) {
 
         set_motor_settings(&mut motor);
 
-        let update_timer = PeriodicTimer::new(timg0.timer0);
+        let update_timer = PeriodicTimer::new(timg1.timer0);
         MotionControl::init(update_timer, motor);
 
         let executor_core1 = InterruptExecutor::new(sw_int.software_interrupt2);
