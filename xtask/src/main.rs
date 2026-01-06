@@ -140,7 +140,7 @@ fn board() -> Result<Board, DynError> {
             | x @ "seeed_xiao_s3"
             | x @ "atom_s3"
             | x @ "ossm_v3"
-            | x @ "custom" => (x, Mcu::Esp32S3),
+            | x @ "custom_s3" => (x, Mcu::Esp32S3),
             x @ "custom_c6" | x @ "ossm_alt_v2" => (x, Mcu::Esp32C6),
             x => Err(format!("Invalid board: {}", x))?,
         };
