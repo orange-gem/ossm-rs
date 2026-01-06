@@ -89,29 +89,16 @@ fn build_and_run() -> Result<(), DynError> {
     println!("Starting the build for {}", board.name);
     println!("Building in {}", project_root().to_str().unwrap());
 
-    let toolchain = ToolchainFile {
-        toolchain: board.mcu.toolchain(),
-    };
-    let toolchain_string = toml::to_string(&toolchain)?;
-    let toolchain_config_path = project_root().join("rust-toolchain.toml");
-    let mut toolchain_file = File::create(toolchain_config_path)?;
-    toolchain_file.write_all(toolchain_string.as_bytes())?;
+    let toolchain = board.mcu.toolchain().channel;
 
     let mut command = Command::new("cargo");
     let command = command
         .current_dir(project_root())
+        .arg(format!("+{}", toolchain))
         .arg("run")
         .arg("--release")
         .args(&["--target", &board.mcu.target_triple()])
         .args(&["--features", &feature]);
-
-    // Prevent the native toolchain from running
-    let env_vars = env::vars();
-    for (var, _value) in env_vars {
-        if var.starts_with("CARGO") || var.starts_with("RUSTUP") {
-            command.env_remove(var);
-        }
-    }
 
     let status = command.status()?;
 
@@ -153,7 +140,7 @@ fn board() -> Result<Board, DynError> {
             | x @ "seeed_xiao_s3"
             | x @ "atom_s3"
             | x @ "ossm_v3"
-            | x @ "custom" => (x, Mcu::Esp32S3),
+            | x @ "custom_s3" => (x, Mcu::Esp32S3),
             x @ "custom_c6" | x @ "ossm_alt_v2" => (x, Mcu::Esp32C6),
             x => Err(format!("Invalid board: {}", x))?,
         };
