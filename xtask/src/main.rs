@@ -1,8 +1,6 @@
 use serde::Serialize;
 use std::{
     env,
-    fs::File,
-    io::Write,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -24,11 +22,6 @@ struct Toolchain {
     channel: String,
     components: Option<Vec<String>>,
     targets: Option<Vec<String>>,
-}
-
-#[derive(Serialize)]
-struct ToolchainFile {
-    toolchain: Toolchain,
 }
 
 impl Mcu {
