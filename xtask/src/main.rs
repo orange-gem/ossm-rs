@@ -1,8 +1,6 @@
 use serde::Serialize;
 use std::{
     env,
-    fs::File,
-    io::Write,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -96,7 +94,7 @@ fn build_and_run() -> Result<(), DynError> {
         .current_dir(project_root())
         .arg(format!("+{}", toolchain))
         .arg("run")
-        .arg("--release")
+        .args(&["--profile", "release-embedded"])
         .args(&["--target", &board.mcu.target_triple()])
         .args(&["--features", &feature]);
 

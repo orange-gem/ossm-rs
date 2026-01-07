@@ -1,4 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["xtask"]
-exclude = ["ossm-rs"]
+members = ["xtask", "ossm-rs"]
+
+[profile.release-embedded]
+inherits = "release"
+codegen-units = 1        # LLVM can perform better optimizations using a single thread
+debug = 2
+debug-assertions = false
+incremental = false
+lto = 'fat'
+opt-level = 's'
+overflow-checks = false
