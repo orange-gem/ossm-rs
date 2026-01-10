@@ -10,9 +10,9 @@ jobs:
         - run:
             name: Install ESP toolchain
             command: |
-                cargo-binstall espup --locked
+                cargo-binstall espup --locked --no-confirm
                 espup install
-                cargo-binstall espflash --locked
+                cargo-binstall espflash --locked --no-confirm
         - run:
             name: Install RISC-V targets
             command: |
@@ -28,6 +28,7 @@ jobs:
             command: |
                 cd ossm-rs
                 zip -r release_binaries.zip ./release_binaries
+                mkdir /tmp/artifacts
                 cp release_binaries.zip /tmp/artifacts
         - store_artifacts:
             path: /tmp/artifacts
