@@ -12,6 +12,7 @@ jobs:
             command: |
                 cargo-binstall espup --locked
                 espup install
+                cargo-binstall espflash --locked
         - run:
             name: Install RISC-V targets
             command: |
@@ -21,7 +22,7 @@ jobs:
             name: Build Binaries
             command: |
                 . $HOME/export-esp.sh
-                cargo xtask all
+                cargo xtask build-all
         - run:
             name: ZIP Binaries
             command: |
