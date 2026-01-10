@@ -1,9 +1,20 @@
-use serde::Serialize;
 use std::{
-    env,
+    env, fs,
     path::{Path, PathBuf},
     process::Command,
+    str::FromStr,
 };
+
+const PROJECT_NAME: &str = "ossm-rs";
+const BOARDS: [&str; 6] = [
+    "waveshare",
+    "seeed_xiao_s3",
+    "atom_s3",
+    "custom_s3",
+    "custom_c6",
+    "ossm_alt_v2",
+];
+const BINARIES_OUTPUT_DIR: &str = "release_binaries";
 
 type DynError = Box<dyn std::error::Error>;
 
@@ -12,12 +23,32 @@ struct Board {
     mcu: Mcu,
 }
 
+impl FromStr for Board {
+    type Err = DynError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (name, mcu) = match s {
+            x @ "waveshare"
+            | x @ "seeed_xiao_s3"
+            | x @ "atom_s3"
+            | x @ "ossm_v3"
+            | x @ "custom_s3" => (x, Mcu::Esp32S3),
+            x @ "custom_c6" | x @ "ossm_alt_v2" => (x, Mcu::Esp32C6),
+            x => Err(format!("Invalid board: {}", x))?,
+        };
+
+        Ok(Board {
+            name: name.to_string(),
+            mcu,
+        })
+    }
+}
+
 enum Mcu {
     Esp32S3,
     Esp32C6,
 }
 
-#[derive(Serialize)]
 struct Toolchain {
     channel: String,
     components: Option<Vec<String>>,
@@ -58,7 +89,16 @@ fn main() {
 fn try_main() -> Result<(), DynError> {
     let task = env::args().nth(1);
     match task.as_deref() {
-        Some("run") => build_and_run()?,
+        Some("run") => {
+            let board_arg = env::args().nth(2);
+            if let Some(board) = board_arg {
+                let board = Board::from_str(&board)?;
+                run_cargo_cmd("run", board)?
+            } else {
+                Err("Board not gived")?
+            }
+        }
+        Some("all") => build_all()?,
         Some("clean") => clean()?,
         _ => print_help(),
     }
@@ -70,13 +110,13 @@ fn print_help() {
         "
 Available Tasks:
 run: builds and runs the firmware
+all: builds all the firmware binaries
 clean: remove all the built files
 "
     )
 }
 
-fn build_and_run() -> Result<(), DynError> {
-    let board = board()?;
+fn run_cargo_cmd(cmd: &str, board: Board) -> Result<(), DynError> {
     let feature = format!("board_{}", board.name);
 
     println!("Starting the build for {}", board.name);
@@ -88,10 +128,10 @@ fn build_and_run() -> Result<(), DynError> {
     let command = command
         .current_dir(project_root())
         .arg(format!("+{}", toolchain))
-        .arg("run")
+        .arg(cmd)
         .arg("--release")
-        .args(&["--target", &board.mcu.target_triple()])
-        .args(&["--features", &feature]);
+        .args(["--target", board.mcu.target_triple()])
+        .args(["--features", &feature]);
 
     let status = command.status()?;
 
@@ -102,7 +142,41 @@ fn build_and_run() -> Result<(), DynError> {
     Ok(())
 }
 
+fn build_all() -> Result<(), DynError> {
+    let output_dir = project_root().join(BINARIES_OUTPUT_DIR);
+
+    if !output_dir.exists() {
+        fs::create_dir(&output_dir)?;
+    }
+
+    for board_str in BOARDS {
+        let board = Board::from_str(board_str)?;
+        let target_triple = board.mcu.target_triple();
+
+        let build_out_file = project_root()
+            .join("target")
+            .join(target_triple)
+            .join("release")
+            .join(PROJECT_NAME);
+
+        println!("Build out: {}", build_out_file.to_str().unwrap());
+
+        run_cargo_cmd("build", board)?;
+
+        fs::copy(build_out_file, output_dir.join(board_str))?;
+    }
+    Ok(())
+}
+
 fn clean() -> Result<(), DynError> {
+    let output_dir = project_root().join(BINARIES_OUTPUT_DIR);
+
+    if let Err(err) = fs::remove_dir_all(output_dir) {
+        if err.kind() != std::io::ErrorKind::NotFound {
+            Err(err)?
+        }
+    }
+
     let status = Command::new("cargo")
         .current_dir(project_root())
         .arg("clean")
@@ -120,29 +194,6 @@ fn project_root() -> PathBuf {
         .ancestors()
         .nth(1)
         .unwrap()
-        .join("ossm-rs")
+        .join(PROJECT_NAME)
         .to_path_buf()
-}
-
-fn board() -> Result<Board, DynError> {
-    let board = env::args().nth(2);
-
-    if let Some(board) = board {
-        let (name, mcu) = match board.as_str() {
-            x @ "waveshare"
-            | x @ "seeed_xiao_s3"
-            | x @ "atom_s3"
-            | x @ "ossm_v3"
-            | x @ "custom_s3" => (x, Mcu::Esp32S3),
-            x @ "custom_c6" | x @ "ossm_alt_v2" => (x, Mcu::Esp32C6),
-            x => Err(format!("Invalid board: {}", x))?,
-        };
-
-        Ok(Board {
-            name: name.to_string(),
-            mcu,
-        })
-    } else {
-        Err("Board not gived")?
-    }
 }
