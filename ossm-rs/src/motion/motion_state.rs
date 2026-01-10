@@ -97,17 +97,28 @@ pub fn set_motion_velocity_pct(mut velocity: u32) {
         velocity = 100;
     }
 
-    MOTION_STATE.velocity.store(velocity, Ordering::Release);
+    let current_velocity = MOTION_STATE.velocity.load(Ordering::Acquire);
+    let current_motion_velocity_mm_s = scale(
+        current_velocity as f64,
+        0.0,
+        100.0,
+        MOTION_CONTROL_MIN_VELOCITY,
+        MOTION_CONTROL_MAX_VELOCITY,
+    );
 
-    // We also need to update the motion control state to react immediately
-    let motion_velocity_mm_s = scale(
+    let new_motion_velocity_mm_s = scale(
         velocity as f64,
         0.0,
         100.0,
         MOTION_CONTROL_MIN_VELOCITY,
         MOTION_CONTROL_MAX_VELOCITY,
     );
-    MotionControl::set_max_velocity(motion_velocity_mm_s);
+
+    // We need to update the motion control state to react immediately
+    // without having to wait for the pattern to send the next move
+    MotionControl::set_max_velocity_scaled(current_motion_velocity_mm_s, new_motion_velocity_mm_s);
+
+    MOTION_STATE.velocity.store(velocity, Ordering::Release);
 }
 
 /// Set the motion sensation in %

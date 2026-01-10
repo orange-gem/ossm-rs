@@ -264,6 +264,27 @@ impl MotionControl {
         });
     }
 
+    /// Set the maximum velocity based on the ratio between the
+    /// current value in MOTION_STATE and the actual current motor velocity
+    /// (velocity sent by the remote and the velocity set by the pattern)
+    ///
+    /// This is to ensure that the updated velocity sent to motion control
+    /// follows the velocity scaling done by the pattern
+    pub fn set_max_velocity_scaled(current_velocity: f64, new_max_velocity: f64) {
+        critical_section::with(|cs| {
+            let velocity_setpoint = {
+                let mut motion_control = MOTION_CONTROL.borrow_ref_mut(cs);
+                let motion_control = motion_control.as_mut().unwrap();
+                motion_control.velocity_setpoint
+            };
+
+            let ratio = velocity_setpoint / current_velocity;
+            let scaled_velocity = new_max_velocity * ratio;
+
+            Self::set_max_velocity(scaled_velocity);
+        });
+    }
+
     /// Set the maximum torque for the move in %
     pub fn set_torque(max_torque: f64) {
         let mut torque = saturate_range(max_torque, 0.0, 100.0);
