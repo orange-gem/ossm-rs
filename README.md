@@ -64,6 +64,20 @@ This is very slow and on first boot OSSM-RS will change it to 115200 which requi
 
 If you check the logs you should see: `Motor baudrate updated. Please power cycle the machine!`
 
+### Developing OSSM-RS
+
+Open the entire workspace to build the firmware and make changes to xtask. Open the subdirectory ossm-rs to develop the firmware. Edit the [cargo config](ossm-rs/.cargo/config.toml#l15) with the appropriate build targets to better feedback from rust-analyzer.
+
+If using VSCode add a .vscode/settings.json with the following json to enable specific features (and thus boards) of ossm-rs
+
+```json
+{
+  "rust-analyzer.cargo.features": "board_ossm_alt_v2"
+}
+```
+
+This split is because there are multiple build targets and feature flags needed to build both xtask and ossm-rs - something that rust-analyzer does not support.
+
 ## Board Support
 
 ### See [supported boards](docs/supported_boards.md)
