@@ -125,6 +125,23 @@ pub async fn m5_task(
             info!("M5 Packet {}", packet);
         }
 
+        if packet.target == OSSM_ID
+            && !manager.peer_exists(&r.info.src_address)
+        {
+            let peer = PeerInfo {
+                interface: esp_radio::esp_now::EspNowWifiInterface::Sta,
+                peer_address: r.info.src_address,
+                lmk: None,
+                channel: None,
+                encrypt: false,
+            };
+            manager.add_peer(peer).unwrap();
+            info!("Added new peer {}", r.info.src_address);
+
+            // Signal that we are paired
+            send_heartbeat_packet(sender, &peer).await;
+        }
+
         match packet.command {
             M5Command::On => {
                 let packet = M5Packet {
@@ -178,24 +195,6 @@ pub async fn m5_task(
                 LAST_HEARTBEAT.store(now, Ordering::Release);
             }
             _ => {}
-        }
-
-        if packet.target == OSSM_ID
-            && r.info.dst_address == BROADCAST_ADDRESS
-            && !manager.peer_exists(&r.info.src_address)
-        {
-            let peer = PeerInfo {
-                interface: esp_radio::esp_now::EspNowWifiInterface::Sta,
-                peer_address: r.info.src_address,
-                lmk: None,
-                channel: None,
-                encrypt: false,
-            };
-            manager.add_peer(peer).unwrap();
-            info!("Added new peer {}", r.info.src_address);
-
-            // Signal that we are paired
-            send_heartbeat_packet(sender, &peer).await;
         }
     }
 }
