@@ -177,7 +177,6 @@ impl MotionControl {
                             self.output.pass_to_input(&mut self.input);
                         }
                         RuckigResult::Finished => {
-                            MOVE_IN_PROGRESS.store(false, Ordering::Release);
                             // Stop the timer until next move
                             critical_section::with(|cs| {
                                 UPDATE_TIMER
@@ -187,6 +186,7 @@ impl MotionControl {
                                     .cancel()
                                     .ok();
                             });
+                            MOVE_IN_PROGRESS.store(false, Ordering::Release);
                         }
                         _ => {
                             error!("Error!");
@@ -222,20 +222,24 @@ impl MotionControl {
             let motion_control = motion_control.as_mut().unwrap();
 
             debug!("Going to a new target position: {} mm", position);
-            motion_control.input.target_position[0] = position;
-            motion_control.output.time = 0.0;
+            if (position != motion_control.input.target_position[0]) {
+                motion_control.input.target_position[0] = position;
+                motion_control.output.time = 0.0;
+            }
 
-            MOVE_IN_PROGRESS.store(true, Ordering::Release);
+            if (!MOVE_IN_PROGRESS.load(Ordering::Acquire)) {
+                MOVE_IN_PROGRESS.store(true, Ordering::Release);
 
-            // Start the timer to run the control loop until the move is done
-            UPDATE_TIMER
-                .borrow_ref_mut(cs)
-                .as_mut()
-                .unwrap()
-                .start(esp_hal::time::Duration::from_millis(
-                    MOTION_CONTROL_LOOP_UPDATE_INTERVAL_MS,
-                ))
-                .expect("Could not start motor update timer");
+                // Start the timer to run the control loop until the move is done
+                UPDATE_TIMER
+                    .borrow_ref_mut(cs)
+                    .as_mut()
+                    .unwrap()
+                    .start(esp_hal::time::Duration::from_millis(
+                        MOTION_CONTROL_LOOP_UPDATE_INTERVAL_MS,
+                    ))
+                    .expect("Could not start motor update timer");
+            }
         });
     }
 

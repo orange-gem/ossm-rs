@@ -85,8 +85,8 @@ pub fn wait_for_home(motor: &mut Motor) {
 async fn retract() {
     let motion_state: MachineMotionState = get_motion_state().into();
 
-    MotionControl::set_max_velocity(RETRACT_VELOCITY);
     MotionControl::set_target_position(MIN_MOVE_MM);
+    MotionControl::set_max_velocity(RETRACT_VELOCITY);
     while MotionControl::is_move_in_progress() {
         Timer::after(Duration::from_millis(10)).await;
     }
