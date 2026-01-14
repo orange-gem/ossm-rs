@@ -1,5 +1,3 @@
-use crate::motor::MotorBaudRate;
-
 // ---- User Parameters ----
 const PULLEY_TOOTH_COUNT: f64 = 20.0;
 const BELT_PITCH: f64 = 2.0;
@@ -16,8 +14,6 @@ pub const RETRACT_ON_MOTION_DISABLED: bool = true;
 pub const RETRACT_VELOCITY: f64 = MOTION_CONTROL_MAX_VELOCITY / 4.0;
 // Change this if your machine is going the wrong way
 pub const REVERSE_DIRECTION: bool = false;
-// The baud rate that your motor comes with. Will be automatically changed at startup
-pub const STOCK_MOTOR_BAUD_RATE: MotorBaudRate = MotorBaudRate::Baud19200;
 
 // ---- Critical parameters. No touchy unless you know what you are doing ----
 // Using the full encoder resolution
@@ -40,8 +36,6 @@ pub const MOTION_CONTROL_MAX_JERK: f64 = 100000.0;
 // pub const MOTION_CONTROL_MAX_JERK: f64 = 100000.0;
 // Turn the machine off after no heartbeat was received for this long
 pub const MAX_NO_REMOTE_HEARTBEAT_MS: u64 = 8000;
-// Motor baud rate to be used by the firmware
-pub const MOTOR_BAUD_RATE: MotorBaudRate = MotorBaudRate::Baud115200;
 // Min output in torque mode. 0-60
 pub const MOTOR_MIN_OUTPUT: f64 = 12.0;
 // Max output in torque mode. 0-60
@@ -50,6 +44,9 @@ pub const MOTOR_MAX_OUTPUT: f64 = 60.0;
 // ---- BLE parameters ----
 pub const CONNECTIONS_MAX: usize = 1;
 pub const L2CAP_CHANNELS_MAX: usize = 2;
+pub const MAX_COMMAND_LENGTH: usize = 64;
+pub const MAX_STATE_LENGTH: usize = 128;
+pub const MAX_PATTERN_LENGTH: usize = 256;
 
 // ---- Calculated parameters ----
 pub const STEPS_PER_MM: f64 = MOTOR_STEPS_PER_REVOLUTION / (PULLEY_TOOTH_COUNT * BELT_PITCH);

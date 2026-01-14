@@ -3,6 +3,7 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
+use crate::config::{MAX_COMMAND_LENGTH, MAX_PATTERN_LENGTH, MAX_STATE_LENGTH};
 use defmt::{error, info};
 use embassy_futures::select::{select, Either};
 use embassy_time::{Duration, Ticker, Timer};
@@ -10,7 +11,7 @@ use esp_radio::ble::controller::BleConnector;
 use heapless::String;
 use trouble_host::prelude::*;
 
-use crate::{
+use ossm_motion::{
     motion::motion_state::{
         get_motion_state, set_motion_depth_pct, set_motion_enabled, set_motion_length_pct,
         set_motion_pattern, set_motion_sensation_pct, set_motion_velocity_pct,
@@ -24,10 +25,6 @@ const SPEED_KNOB_UUID: Uuid = uuid!("522b443a-4f53-534d-1010-420badbabe69");
 const CURRENT_STATE_UUID: Uuid = uuid!("522b443a-4f53-534d-2000-420badbabe69");
 const PATTERN_LIST_UUID: Uuid = uuid!("522b443a-4f53-534d-3000-420badbabe69");
 const PATTERN_DESCRIPTION_UUID: Uuid = uuid!("522b443a-4f53-534d-3010-420badbabe69");
-
-pub const MAX_COMMAND_LENGTH: usize = 64;
-pub const MAX_STATE_LENGTH: usize = 128;
-pub const MAX_PATTERN_LENGTH: usize = 256;
 
 static CONNECTED: AtomicBool = AtomicBool::new(false);
 

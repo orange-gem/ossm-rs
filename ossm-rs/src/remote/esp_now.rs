@@ -9,12 +9,11 @@ use esp_radio::esp_now::{
 use portable_atomic::AtomicU64;
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
 
-use crate::{
-    config::{MAX_NO_REMOTE_HEARTBEAT_MS, MAX_TRAVEL_MM, MOTION_CONTROL_MAX_VELOCITY},
-    motion::motion_state::{
-        set_motion_depth_mm, set_motion_enabled, set_motion_length_mm, set_motion_pattern,
-        set_motion_sensation_neg_pos_100, set_motion_velocity_mm_s,
-    },
+use crate::config::{MAX_NO_REMOTE_HEARTBEAT_MS, MAX_TRAVEL_MM, MOTION_CONTROL_MAX_VELOCITY};
+
+use ossm_motion::motion::motion_state::{
+    set_motion_depth_mm, set_motion_enabled, set_motion_length_mm, set_motion_pattern,
+    set_motion_sensation_neg_pos_100, set_motion_velocity_mm_s,
 };
 
 const OSSM_ID: i32 = 1;

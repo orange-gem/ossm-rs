@@ -85,7 +85,7 @@ dependencies = [
  "embedded-io",
  "embedded-io-async",
  "futures-intrusive",
- "heapless 0.8.0",
+ "heapless 0.9.2",
 ]
 
 [[package]]
@@ -1334,6 +1334,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
+name = "ossm-motion"
+version = "0.1.0"
+dependencies = [
+ "critical-section",
+ "defmt 1.0.1",
+ "embassy-time",
+ "enum_dispatch",
+ "fugit",
+ "heapless 0.9.2",
+ "num-traits",
+ "portable-atomic",
+ "rsruckig",
+]
+
+[[package]]
 name = "ossm-rs"
 version = "0.1.0"
 dependencies = [
@@ -1347,7 +1362,6 @@ dependencies = [
  "embedded-io",
  "embedded-io-async",
  "enum-iterator",
- "enum_dispatch",
  "esp-alloc",
  "esp-backtrace",
  "esp-bootloader-esp-idf",
@@ -1357,9 +1371,9 @@ dependencies = [
  "esp-rtos",
  "heapless 0.9.2",
  "num-traits",
+ "ossm-motion",
  "portable-atomic",
  "rmodbus",
- "rsruckig",
  "static_cell",
  "trouble-host",
  "vergen-gitcl",

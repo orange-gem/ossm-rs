@@ -10,16 +10,15 @@
 compile_error!("No board selected!");
 
 mod board;
-mod config;
 mod motion;
 mod motion_control;
 mod motor;
-mod pattern;
 mod remote;
-mod utils;
+pub use ossm_motion::config;
+pub use ossm_motion::utils;
 
 use crate::board::Pins;
-use crate::config::{MOTOR_BAUD_RATE, STOCK_MOTOR_BAUD_RATE};
+use crate::motor::m57aimxx::config::{MOTOR_BAUD_RATE, STOCK_MOTOR_BAUD_RATE};
 use crate::remote::remote_connection_task;
 use crate::remote::{
     ble::{ble_events_task, ble_runner_task},
@@ -27,8 +26,8 @@ use crate::remote::{
 };
 
 use crate::motion::{run_motion, set_motor_settings, wait_for_home};
-use crate::motion_control::MotionControl;
-use crate::motor::{Motor, ReadOnlyMotorRegisters, ReadWriteMotorRegisters};
+use crate::motion_control::EspMotionControl;
+use crate::motor::m57aimxx::{Motor57AIMxx, ReadOnlyMotorRegisters, ReadWriteMotorRegisters};
 use config::{CONNECTIONS_MAX, L2CAP_CHANNELS_MAX};
 use defmt::{error, info};
 use embassy_executor::Spawner;
@@ -234,7 +233,7 @@ async fn main(spawner: Spawner) {
 
         // Wait for the motor to boot up
 
-        let mut motor = Motor::new(rs485, timg0.timer0.into());
+        let mut motor = Motor57AIMxx::new(rs485, timg0.timer0.into());
         motor.delay(esp_hal::time::Duration::from_millis(500));
 
         // Try to read a register to see if the motor is online
@@ -254,7 +253,7 @@ async fn main(spawner: Spawner) {
                 .apply_config(&slow_rs485_config)
                 .expect("Failed to change RS485 config");
 
-            let mut motor = Motor::new(rs485, motor_timer);
+            let mut motor = Motor57AIMxx::new(rs485, motor_timer);
 
             motor
                 .set_baud_rate(MOTOR_BAUD_RATE)
@@ -280,7 +279,7 @@ async fn main(spawner: Spawner) {
         set_motor_settings(&mut motor);
 
         let update_timer = PeriodicTimer::new(timg1.timer0);
-        MotionControl::init(update_timer, motor);
+        EspMotionControl::init(update_timer, motor);
 
         let executor_core1 = InterruptExecutor::new(sw_int.software_interrupt2);
         let executor_core1 = EXECUTOR_CORE_1.init(executor_core1);

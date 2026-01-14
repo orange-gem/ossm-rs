@@ -1,8 +1,9 @@
 use crate::{
-    config::{MAX_TRAVEL_MM, MOTION_CONTROL_MAX_VELOCITY, MOTION_CONTROL_MIN_VELOCITY},
-    motion_control::MotionControl,
+    config::{
+        MAX_STATE_LENGTH, MAX_TRAVEL_MM, MOTION_CONTROL_MAX_VELOCITY, MOTION_CONTROL_MIN_VELOCITY,
+    },
+    motion_control::set_max_velocity_scaled,
     pattern::{MAX_SENSATION, MIN_SENSATION},
-    remote::ble::MAX_STATE_LENGTH,
     utils::{saturate_range, scale},
 };
 use core::{
@@ -116,7 +117,7 @@ pub fn set_motion_velocity_pct(mut velocity: u32) {
 
     // We need to update the motion control state to react immediately
     // without having to wait for the pattern to send the next move
-    MotionControl::set_max_velocity_scaled(current_motion_velocity_mm_s, new_motion_velocity_mm_s);
+    set_max_velocity_scaled(current_motion_velocity_mm_s, new_motion_velocity_mm_s);
 
     MOTION_STATE.velocity.store(velocity, Ordering::Release);
 }

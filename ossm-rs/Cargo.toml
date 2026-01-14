@@ -5,6 +5,7 @@ rust-version = "1.86"
 version = "0.1.0"
 
 [dependencies]
+ossm-motion = { path = "../ossm-motion" }
 defmt = "1.0.1"
 esp-bootloader-esp-idf = { git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 esp-hal = { features = [
@@ -55,16 +56,11 @@ portable-atomic = { version = "1.11.1", default-features = false, features = [
 num-traits = { version = "0.2.19", default-features = false, features = [
     "libm",
 ] }
-enum_dispatch = "0.3.13"
 
 rmodbus = { version = "0.12.2", default-features = false, features = [
     "heapless",
 ] }
 enum-iterator = "2.3.0"
-rsruckig = { default-features = false, features = [
-    "libm",
-    "alloc",
-], git = "https://github.com/petrikosk/rsruckig.git" }
 
 [build-dependencies]
 vergen-gitcl = { version = "1.0.8", features = [] }
