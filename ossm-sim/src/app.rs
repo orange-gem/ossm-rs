@@ -121,7 +121,7 @@ impl OssmSim {
             ui.vertical(|ui| {
                 ui.label("Position");
                 Plot::new("position")
-                    .height(300.0)
+                    .height(200.0)
                     .y_grid_spacer(egui_plot::log_grid_spacer(5))
                     .default_x_bounds(self.position_points.first().unwrap().x, x_len)
                     .default_y_bounds(MIN_MOVE_MM - 5.0, MAX_MOVE_MM + 5.0)
@@ -136,7 +136,7 @@ impl OssmSim {
             ui.vertical(|ui| {
                 ui.label("Velocity");
                 Plot::new("Velocity")
-                    .height(300.0)
+                    .height(200.0)
                     .y_grid_spacer(egui_plot::log_grid_spacer(5))
                     .default_x_bounds(self.velocity_points.first().unwrap().x, x_len)
                     .default_y_bounds(
@@ -154,7 +154,7 @@ impl OssmSim {
             ui.vertical(|ui| {
                 ui.label("Acceleration");
                 Plot::new("Acceleration")
-                    .height(300.0)
+                    .height(200.0)
                     .y_grid_spacer(egui_plot::log_grid_spacer(5))
                     .default_x_bounds(self.velocity_points.first().unwrap().x, x_len)
                     // .default_y_bounds(

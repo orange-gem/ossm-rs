@@ -24,7 +24,6 @@ fn main() -> eframe::Result {
         .unwrap();
 
     let (tx, rx) = channel::<PlotMessage>();
-
     let _motion_control = runtime.spawn(run_motion_control(tx));
     let _motion = runtime.spawn(run_motion());
 
@@ -52,7 +51,11 @@ fn main() {
     use eframe::wasm_bindgen::JsCast as _;
 
     // Redirect `log` message to `console.log` and friends:
-    eframe::WebLogger::init(log::LevelFilter::Debug).ok();
+    eframe::WebLogger::init(log::LevelFilter::Info).ok();
+
+    let (tx, rx) = channel::<PlotMessage>();
+    let _motion_control = wasm_bindgen_futures::spawn_local(run_motion_control(tx));
+    let _motion = wasm_bindgen_futures::spawn_local(run_motion());
 
     let web_options = eframe::WebOptions::default();
 
@@ -72,7 +75,7 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::new(eframe_template::TemplateApp::new(cc)))),
+                Box::new(|cc| Ok(Box::new(app::OssmSim::new(cc, rx)))),
             )
             .await;
 
