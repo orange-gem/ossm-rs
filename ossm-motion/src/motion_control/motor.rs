@@ -1,10 +1,9 @@
 use core::fmt::Debug;
 
-use defmt::Format;
 use crate::motion_control::timer::Duration;
 
 pub trait Motor {
-    type MotorError: Format + Debug;
+    type MotorError: Debug;
 
     /// The minimum timing the commands are allowed to be sent to the motor with
     fn min_consecutive_write_delay() -> Duration;

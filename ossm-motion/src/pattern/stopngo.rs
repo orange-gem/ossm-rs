@@ -1,4 +1,4 @@
-use defmt::info;
+use log::info;
 
 use crate::{
     pattern::{MAX_SENSATION, MIN_SENSATION},

@@ -6,47 +6,45 @@ version = "0.1.0"
 
 [dependencies]
 ossm-motion = { path = "../ossm-motion" }
-defmt = "1.0.1"
-esp-bootloader-esp-idf = { git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
+log = "0.4.29"
+
+esp-bootloader-esp-idf = { features = [
+    "log-04",
+], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 esp-hal = { features = [
-    "defmt",
+    "log-04",
     "unstable",
 ], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 
 esp-rtos = { features = [
     "embassy",
-    "defmt",
+    "log-04",
 ], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 esp-radio = { features = [
     "ble",
-    "defmt",
+    "log-04",
     "esp-now",
     "unstable",
     "wifi",
 ], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
-embedded-io = { version = "0.6.1", features = ["defmt-03"] }
-embedded-io-async = { version = "0.6.1", features = ["defmt-03"] }
-esp-alloc = { features = [
-    "defmt",
-], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
+embedded-io = "0.6.1"
+embedded-io-async = "0.6.1"
+esp-alloc = { git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 esp-backtrace = { features = [
     "println",
     "panic-handler",
 ], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 esp-println = { features = [
-    "defmt-espflash",
+    "log-04",
 ], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 critical-section = "1.2.0"
-embassy-executor = { version = "0.9.1", features = ["defmt"] }
-embassy-time = { version = "0.5.0", features = ["defmt"] }
+embassy-executor = { version = "0.9.1", features = ["log"] }
+embassy-time = { version = "0.5.0", features = ["log"] }
 embassy-futures = "0.1.2"
 embassy-sync = "0.7.2"
 static_cell = "2.1.1"
 bt-hci = "0.6.0"
-trouble-host = { version = "0.5.1", features = [
-    "defmt",
-    "default-packet-pool-mtu-255",
-] }
+trouble-host = { version = "0.5.1", features = ["default-packet-pool-mtu-255"] }
 
 heapless = "0.9.2"
 zerocopy = { version = "0.8.31", features = ["derive"] }

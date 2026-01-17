@@ -4,7 +4,7 @@ use core::{
 };
 
 use crate::config::{MAX_COMMAND_LENGTH, MAX_PATTERN_LENGTH, MAX_STATE_LENGTH};
-use defmt::{error, info};
+use log::{error, info};
 use embassy_futures::select::{select, Either};
 use embassy_time::{Duration, Ticker, Timer};
 use esp_radio::ble::controller::BleConnector;
@@ -95,7 +95,7 @@ pub async fn ble_events_task(
 
                 let phy = connection.read_phy(stack).await.unwrap();
                 let mtu = connection.att_mtu();
-                info!("PHY {} MTU {}", phy, mtu);
+                info!("PHY {:?} MTU {:?}", phy, mtu);
 
                 let gatt_connection = connection
                     .with_attribute_server(&server)

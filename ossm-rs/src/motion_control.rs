@@ -1,19 +1,19 @@
 use core::cell::RefCell;
 
 use critical_section::Mutex;
-use defmt::{debug, error, info};
+use log::{debug, error, info};
 use esp_hal::{handler, interrupt::Priority, time::Duration, timer::PeriodicTimer, Blocking};
 
 use crate::{motion::timer::EspTimer, motor::m57aimxx::Motor57AIMxx};
-use ossm_motion::{config::MOTION_CONTROL_LOOP_UPDATE_INTERVAL_MS, motion_control::MotionControl};
+use ossm_motion::{config::MOTION_CONTROL_LOOP_UPDATE_INTERVAL_MS, motion_control::{MotionControl, debug::DummyDebugOut}};
 
 pub static UPDATE_TIMER: Mutex<RefCell<Option<PeriodicTimer<'static, Blocking>>>> =
     Mutex::new(RefCell::new(None));
-static MOTION_CONTROL: Mutex<RefCell<Option<MotionControl<Motor57AIMxx, EspTimer>>>> =
+static MOTION_CONTROL: Mutex<RefCell<Option<MotionControl<Motor57AIMxx, EspTimer, DummyDebugOut>>>> =
     Mutex::new(RefCell::new(None));
 
 // Timer interrupt
-#[handler(priority = Priority::Priority1)]
+#[handler(priority = Priority::Priority2)]
 pub fn motion_control_interrupt() {
     critical_section::with(|cs| {
         UPDATE_TIMER

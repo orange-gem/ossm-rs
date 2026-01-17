@@ -1,6 +1,6 @@
 pub mod config;
 
-use defmt::{debug, error};
+use log::{debug, error};
 use embedded_io::Write;
 use enum_iterator::Sequence;
 use esp_hal::{
@@ -23,7 +23,7 @@ const MAX_REG_READ_AT_ONCE: usize = 8;
 
 pub const MAX_MOTOR_SPEED_RPM: u16 = 3000;
 
-#[derive(Clone, Copy, defmt::Format, PartialEq, Sequence)]
+#[derive(Debug, Clone, Copy, PartialEq, Sequence)]
 #[repr(u16)]
 pub enum ReadWriteMotorRegisters {
     ModbusEnable = 0x00,
@@ -45,7 +45,7 @@ pub enum ReadWriteMotorRegisters {
     SpecificFunction = 0x19,
 }
 
-#[derive(Clone, Copy, defmt::Format, PartialEq, Sequence)]
+#[derive(Debug, Clone, Copy, PartialEq, Sequence)]
 #[repr(u16)]
 pub enum ReadOnlyMotorRegisters {
     TargetPositionLowU16 = 0x0C,
@@ -96,7 +96,7 @@ impl MotorBaudRate {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, defmt::Format)]
+#[derive(Debug)]
 pub enum MotorError {
     Rs485Error(RxError),
     Timeout,
@@ -234,7 +234,7 @@ impl Motor57AIMxx {
             .generate_get_holdings(reg.addr(), count, &mut request)
             .expect("Failed to generate reg read request");
 
-        debug!("Req {:x}", request);
+        debug!("Req {:x?}", request);
         self.rs485
             .write_all(&request)
             .expect("Failed to write the request bytes to RS485");
@@ -294,7 +294,7 @@ impl Motor57AIMxx {
 
         if response[0..2] != [0x1, 0x7b] {
             error!(
-                "Incorrect response to a 0x7b command: {:x}",
+                "Incorrect response to a 0x7b command: {:x?}",
                 &response[0..8]
             );
         }

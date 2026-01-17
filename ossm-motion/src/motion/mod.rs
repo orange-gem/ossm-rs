@@ -1,6 +1,6 @@
 use core::f64::INFINITY;
 
-use defmt::info;
+use log::info;
 use embassy_time::{Duration, Ticker, Timer};
 pub mod motion_state;
 

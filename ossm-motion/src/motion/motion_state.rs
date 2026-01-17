@@ -10,7 +10,7 @@ use core::{
     fmt::Write,
     sync::atomic::{AtomicBool, AtomicU32, Ordering},
 };
-use defmt::error;
+use log::error;
 use heapless::String;
 use num_traits::float::Float;
 

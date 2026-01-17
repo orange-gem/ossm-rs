@@ -4,7 +4,7 @@ use crate::{
     config::{MIN_MOVE_MM, REVERSE_DIRECTION, STEPS_PER_MM},
     motor::m57aimxx::{Motor57AIMxx, MAX_MOTOR_SPEED_RPM},
 };
-use defmt::info;
+use log::info;
 
 /// Set the default motor settings
 pub fn set_motor_settings(motor: &mut Motor57AIMxx) {

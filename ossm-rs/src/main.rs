@@ -29,7 +29,7 @@ use crate::motion::{run_motion, set_motor_settings, wait_for_home};
 use crate::motion_control::EspMotionControl;
 use crate::motor::m57aimxx::{Motor57AIMxx, ReadOnlyMotorRegisters, ReadWriteMotorRegisters};
 use config::{CONNECTIONS_MAX, L2CAP_CHANNELS_MAX};
-use defmt::{error, info};
+use log::{error, info};
 use embassy_executor::Spawner;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::signal::Signal;
@@ -82,6 +82,8 @@ macro_rules! mk_static {
 
 #[esp_rtos::main]
 async fn main(spawner: Spawner) {
+    esp_println::logger::init_logger_from_env();
+
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
@@ -239,7 +241,7 @@ async fn main(spawner: Spawner) {
         // Try to read a register to see if the motor is online
         if let Err(err) = motor.get_abolute_position() {
             error!(
-                "Failed to communicate with the motor ({}). Trying to change baud rate",
+                "Failed to communicate with the motor ({:?}). Trying to change baud rate",
                 err
             );
 
@@ -266,12 +268,12 @@ async fn main(spawner: Spawner) {
 
         for x in all::<ReadOnlyMotorRegisters>() {
             let val = motor.read_register(&x).expect("Could not read register");
-            info!("Reg {} val {}", x, val);
+            info!("Reg {:?} val {}", x, val);
         }
 
         for x in all::<ReadWriteMotorRegisters>() {
             let val = motor.read_register(&x).expect("Could not read register");
-            info!("Reg {} val {}", x, val);
+            info!("Reg {:?} val {}", x, val);
         }
 
         wait_for_home(&mut motor);

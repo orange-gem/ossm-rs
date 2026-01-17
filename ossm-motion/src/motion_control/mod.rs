@@ -1,3 +1,4 @@
+pub mod debug;
 pub mod motor;
 pub mod timer;
 
@@ -6,13 +7,14 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use defmt::{debug, error, info};
+use log::{debug, error, info};
 use portable_atomic::{AtomicF64, AtomicU16};
 use rsruckig::prelude::*;
 
 use crate::{
     config::*,
     motion_control::{
+        debug::{DebugOut, DummyDebugOut},
         motor::Motor,
         timer::{Duration, Instant, Timer},
     },
@@ -40,9 +42,10 @@ static MOTION_CONTROL_STATE: MotionControlStateStorage = MotionControlStateStora
     torque: AtomicU16::new(0),
 };
 
-pub struct MotionControl<M: Motor, T: Timer> {
+pub struct MotionControl<M: Motor, T: Timer, D: DebugOut> {
     motor: M,
     timer: T,
+    debug: D,
     ruckig: Ruckig<1, ThrowErrorHandler>,
     input: InputParameter<1>,
     output: OutputParameter<1>,
@@ -53,9 +56,15 @@ pub struct MotionControl<M: Motor, T: Timer> {
     last_motor_write: Instant,
 }
 
-impl<M: Motor, T: Timer> MotionControl<M, T> {
+impl<M: Motor, T: Timer> MotionControl<M, T, DummyDebugOut> {
     /// Initialises the MotionControl and allows the use of attached functions
     pub fn new(motor: M, timer: T) -> Self {
+        Self::new_with_debug(motor, timer, DummyDebugOut::new())
+    }
+}
+
+impl<M: Motor, T: Timer, D: DebugOut> MotionControl<M, T, D> {
+    pub fn new_with_debug(motor: M, timer: T, debug: D) -> Self {
         info!("Motion Control Init");
 
         let mut input = InputParameter::new(None);
@@ -72,6 +81,7 @@ impl<M: Motor, T: Timer> MotionControl<M, T> {
         let motion_control = Self {
             motor,
             timer,
+            debug,
             ruckig: Ruckig::<1, ThrowErrorHandler>::new(
                 None,
                 MOTION_CONTROL_LOOP_UPDATE_INTERVAL_MS as f64 / 1000.0,
@@ -87,6 +97,7 @@ impl<M: Motor, T: Timer> MotionControl<M, T> {
 
         motion_control
     }
+
 
     /// The handler that must be called every MOTION_CONTROL_LOOP_UPDATE_INTERVAL_MS
     pub fn update_handler(&mut self) {
@@ -178,11 +189,16 @@ impl<M: Motor, T: Timer> MotionControl<M, T> {
                             }
 
                             if let Err(err) = self.motor.set_absolute_position(new_steps as i32) {
-                                error!("Failed to set motor position {}", err);
+                                error!("Failed to set motor position {:?}", err);
                             }
                             self.last_motor_write = self.timer.now();
 
                             debug!("Set motor position to {} mm", new_position);
+
+                            self.debug.new_position(new_position);
+                            self.debug.new_velocity(self.output.new_velocity[0]);
+                            self.debug.new_acceleration(self.output.new_acceleration[0]);
+                            self.debug.new_jerk(self.output.new_jerk[0]);
 
                             self.output.pass_to_input(&mut self.input);
                         }
@@ -195,7 +211,7 @@ impl<M: Motor, T: Timer> MotionControl<M, T> {
                     }
                 }
                 Err(err) => {
-                    error!("Ruckig Error {}", defmt::Debug2Format(&err));
+                    error!("Ruckig Error {:?}", err);
                 }
             }
 

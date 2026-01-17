@@ -1,6 +1,6 @@
 use core::sync::atomic::{AtomicBool, Ordering};
 
-use defmt::{error, info, Format};
+use log::{error, info};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Instant, Ticker};
 use esp_radio::esp_now::{
@@ -22,7 +22,7 @@ const M5_ID: i32 = 99;
 static LAST_HEARTBEAT: AtomicU64 = AtomicU64::new(0);
 static CONNECTED: AtomicBool = AtomicBool::new(false);
 
-#[derive(Default, Format, TryFromBytes, IntoBytes, Immutable)]
+#[derive(Default, Debug, TryFromBytes, IntoBytes, Immutable)]
 #[repr(i32)]
 // The commands are not constructed
 #[allow(dead_code)]
@@ -52,7 +52,7 @@ enum M5Command {
     Heartbeat = 99,
 }
 
-#[derive(Default, Format, TryFromBytes, IntoBytes, Immutable, KnownLayout)]
+#[derive(Default, Debug, TryFromBytes, IntoBytes, Immutable, KnownLayout)]
 #[repr(C)]
 struct M5Packet {
     speed: f32,
@@ -113,7 +113,7 @@ pub async fn m5_task(
             Err(err) => {
                 error!(
                     "Failed to parse the M5 Packet {:?}",
-                    defmt::Debug2Format(&err)
+                    err
                 );
                 continue;
             }
@@ -121,7 +121,7 @@ pub async fn m5_task(
 
         if let M5Command::Heartbeat = packet.command {
         } else {
-            info!("M5 Packet {}", packet);
+            info!("M5 Packet {:?}", packet);
         }
 
         match packet.command {
@@ -191,7 +191,7 @@ pub async fn m5_task(
                 encrypt: false,
             };
             manager.add_peer(peer).unwrap();
-            info!("Added new peer {}", r.info.src_address);
+            info!("Added new peer {:?}", r.info.src_address);
 
             // Signal that we are paired
             send_heartbeat_packet(sender, &peer).await;

@@ -6,7 +6,7 @@ mod teasingpounding;
 mod torque;
 
 use deeper::Deeper;
-use defmt::error;
+use log::error;
 use halfhalf::HalfHalf;
 use heapless::String;
 use simple::Simple;
