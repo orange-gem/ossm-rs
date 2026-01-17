@@ -156,15 +156,15 @@ impl OssmSim {
                 Plot::new("Acceleration")
                     .height(200.0)
                     .y_grid_spacer(egui_plot::log_grid_spacer(5))
-                    .default_x_bounds(self.velocity_points.first().unwrap().x, x_len)
+                    .default_x_bounds(self.acceleration_points.first().unwrap().x, x_len)
                     // .default_y_bounds(
                     //     -MOTION_CONTROL_MAX_ACCELERATION - 5.0,
                     //     MOTION_CONTROL_MAX_ACCELERATION + 5.0,
                     // )
-                    .include_x(self.velocity_points.last().unwrap().x)
+                    .include_x(self.acceleration_points.last().unwrap().x)
                     .show(ui, |plot_ui| {
                         plot_ui.add(
-                            Line::new("Acceleration", self.velocity_points.as_slice())
+                            Line::new("Acceleration", self.acceleration_points.as_slice())
                                 .color(Color32::RED),
                         );
                     });
