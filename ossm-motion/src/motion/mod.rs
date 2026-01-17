@@ -67,8 +67,6 @@ pub async fn run_motion() {
                 pattern_executor.get_current_pattern_name()
             );
             prev_pattern = motion_state.pattern;
-            // Always start the pattern from the retracted position
-            retract().await;
         }
 
         if !motion_control::is_move_in_progress() && motion_state.motion_enabled {
