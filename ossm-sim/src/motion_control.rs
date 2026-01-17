@@ -1,9 +1,7 @@
 use std::{
-    thread,
-    time::{Duration, Instant, SystemTime},
+    sync::mpsc::Sender, thread, time::{Duration, Instant, SystemTime}
 };
 
-use liveplot::{PlotPoint, PlotSink, Trace};
 use ossm_motion::{
     config::MOTION_CONTROL_LOOP_UPDATE_INTERVAL_MS,
     motion_control::{
@@ -14,10 +12,12 @@ use ossm_motion::{
     },
 };
 
-pub async fn run_motion_control(plot_sink: PlotSink) {
+use crate::plotting::PlotMessage;
+
+pub async fn run_motion_control(tx: Sender<PlotMessage>) {
     let motor = DummyMotor::new();
     let timer = StdTimer::new();
-    let debug = PlotDebug::new(plot_sink);
+    let debug = PlotDebug::new(tx);
     let mut motion_control = MotionControl::new_with_debug(motor, timer, debug);
 
     let mut interval = tokio::time::interval(Duration::from_millis(
@@ -78,22 +78,14 @@ impl Timer for StdTimer {
 
 struct PlotDebug {
     start_time: Instant,
-    position_trace: Trace,
-    velocity_trace: Trace,
-    acceleration_trace: Trace,
-    jerk_trace: Trace,
-    plot_sink: PlotSink,
+    tx: Sender<PlotMessage>,
 }
 
 impl PlotDebug {
-    pub fn new(plot_sink: PlotSink) -> Self {
+    pub fn new(tx: Sender<PlotMessage>) -> Self {
         Self {
             start_time: Instant::now(),
-            position_trace: plot_sink.create_trace("position", None),
-            velocity_trace: plot_sink.create_trace("velocity", None),
-            acceleration_trace: plot_sink.create_trace("acceleration", None),
-            jerk_trace: plot_sink.create_trace("jerk", None),
-            plot_sink,
+            tx,
         }
     }
 }
@@ -101,42 +93,21 @@ impl PlotDebug {
 impl DebugOut for PlotDebug {
     fn new_position(&mut self, position: f64) {
         let time = self.start_time.elapsed().as_secs_f64();
-        let point = PlotPoint {
-            x: time,
-            y: position,
-        };
-        self.plot_sink
-            .send_point(&self.position_trace, point)
-            .expect("Could not send position");
+        self.tx.send(PlotMessage::new("position", time, position)).unwrap();
+        // log::info!("POS {}", position);
     }
 
     fn new_velocity(&mut self, velocity: f64) {
         let time = self.start_time.elapsed().as_secs_f64();
-        let point = PlotPoint {
-            x: time,
-            y: velocity,
-        };
-        self.plot_sink
-            .send_point(&self.velocity_trace, point)
-            .expect("Could not send position");
+        self.tx.send(PlotMessage::new("velocity", time, velocity)).unwrap();
     }
 
     fn new_acceleration(&mut self, acceleration: f64) {
         let time = self.start_time.elapsed().as_secs_f64();
-        let point = PlotPoint {
-            x: time,
-            y: acceleration,
-        };
-        self.plot_sink
-            .send_point(&self.acceleration_trace, point)
-            .expect("Could not send position");
+        self.tx.send(PlotMessage::new("acceleration", time, acceleration)).unwrap();
     }
 
     fn new_jerk(&mut self, jerk: f64) {
         let time = self.start_time.elapsed().as_secs_f64();
-        let point = PlotPoint { x: time, y: jerk };
-        self.plot_sink
-            .send_point(&self.jerk_trace, point)
-            .expect("Could not send position");
     }
 }
