@@ -1,0 +1,11 @@
+[package]
+name = "ossm-sim"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ossm-motion = { path = "../ossm-motion" }
+tokio = { version = "1.49.0", features = ["full"] }
+embassy-time = {version = "0.5.0", features = ["std", "generic-queue-32"] }
+env_logger = "0.11.8"
+liveplot = "1.1.0"

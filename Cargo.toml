@@ -1,4 +1,4 @@
 [workspace]
 resolver = "2"
 members = ["xtask"]
-exclude = ["ossm-rs", "ossm-motion"]
+exclude = ["ossm-rs", "ossm-motion", "ossm-sim"]

@@ -12,6 +12,8 @@ use core::{
 };
 use log::error;
 use heapless::String;
+
+#[allow(dead_code)]
 use num_traits::float::Float;
 
 struct MotionStateStorage {
