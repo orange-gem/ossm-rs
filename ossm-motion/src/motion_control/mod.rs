@@ -98,7 +98,6 @@ impl<M: Motor, T: Timer, D: DebugOut> MotionControl<M, T, D> {
         motion_control
     }
 
-
     /// The handler that must be called every MOTION_CONTROL_LOOP_UPDATE_INTERVAL_MS
     pub fn update_handler(&mut self) {
         if MOTION_CONTROL_STATE_UPDATED.load(Ordering::Acquire) {
@@ -228,6 +227,11 @@ impl<M: Motor, T: Timer, D: DebugOut> MotionControl<M, T, D> {
                     duration_ms, MOTION_CONTROL_LOOP_UPDATE_INTERVAL_MS
                 );
             }
+        } else {
+            self.debug.new_position(self.output.new_position[0]);
+            self.debug.new_velocity(self.output.new_velocity[0]);
+            self.debug.new_acceleration(self.output.new_acceleration[0]);
+            self.debug.new_jerk(self.output.new_jerk[0]);
         }
     }
 
