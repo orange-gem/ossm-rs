@@ -1,22 +1,13 @@
-use core::f64::INFINITY;
-
-use defmt::info;
-use embassy_time::{Duration, Ticker, Timer};
-pub mod motion_state;
+pub mod timer;
 
 use crate::{
-    config::{
-        MIN_MOVE_MM, MOTION_CONTROL_MIN_VELOCITY, RETRACT_ON_MOTION_DISABLED, RETRACT_VELOCITY,
-        REVERSE_DIRECTION, STEPS_PER_MM,
-    },
-    motion::motion_state::{get_motion_state, MachineMotionState},
-    motion_control::MotionControl,
-    motor::{Motor, MAX_MOTOR_SPEED_RPM},
-    pattern::{Pattern, PatternExecutor, PatternInput, PatternMove},
+    config::{MIN_MOVE_MM, REVERSE_DIRECTION, STEPS_PER_MM},
+    motor::m57aimxx::{Motor57AIMxx, MAX_MOTOR_SPEED_RPM},
 };
+use log::info;
 
 /// Set the default motor settings
-pub fn set_motor_settings(motor: &mut Motor) {
+pub fn set_motor_settings(motor: &mut Motor57AIMxx) {
     // Set high speed and acceleration since those are controlled by motion control
     motor
         .set_target_speed(MAX_MOTOR_SPEED_RPM)
@@ -38,7 +29,7 @@ pub fn set_motor_settings(motor: &mut Motor) {
 }
 
 /// Home and wait until done
-pub fn wait_for_home(motor: &mut Motor) {
+pub fn wait_for_home(motor: &mut Motor57AIMxx) {
     // Set slower speed and output for homing
     motor
         .set_target_speed(80)
@@ -82,92 +73,7 @@ pub fn wait_for_home(motor: &mut Motor) {
     info!("Moved to minimum position");
 }
 
-async fn retract() {
-    let motion_state: MachineMotionState = get_motion_state().into();
-
-    MotionControl::set_target_position(MIN_MOVE_MM);
-    MotionControl::set_max_velocity(RETRACT_VELOCITY);
-    while MotionControl::is_move_in_progress() {
-        Timer::after(Duration::from_millis(10)).await;
-    }
-    // Restore the previous velocity
-    MotionControl::set_max_velocity(motion_state.velocity);
-}
-
 #[embassy_executor::task]
 pub async fn run_motion() {
-    let mut ticker = Ticker::every(Duration::from_millis(10));
-    let mut prev_motion_enabled = false;
-
-    let mut pattern_executor = PatternExecutor::new();
-    let mut prev_pattern: u32 = 0;
-    let mut pattern_move = PatternMove::default();
-    let mut prev_pattern_move = PatternMove::default();
-    // Values to be overriden on the first move
-    prev_pattern_move.velocity = INFINITY;
-    prev_pattern_move.torque = INFINITY;
-
-    info!("Task Motion Started");
-
-    loop {
-        let motion_state: MachineMotionState = get_motion_state().into();
-
-        // Retract the machine if motion was disabled
-        if !motion_state.motion_enabled && prev_motion_enabled {
-            if RETRACT_ON_MOTION_DISABLED {
-                pattern_executor.reset();
-                retract().await;
-            } else {
-                MotionControl::set_max_velocity(MOTION_CONTROL_MIN_VELOCITY);
-            }
-        }
-
-        if motion_state.motion_enabled && !prev_motion_enabled {
-            // Restore the previous velocity
-            if !RETRACT_ON_MOTION_DISABLED {
-                MotionControl::set_max_velocity(pattern_move.velocity);
-            }
-        }
-
-        if motion_state.pattern != prev_pattern {
-            pattern_executor.set_pattern(motion_state.pattern);
-            pattern_executor.reset();
-            info!(
-                "Pattern set to: {}",
-                pattern_executor.get_current_pattern_name()
-            );
-            prev_pattern = motion_state.pattern;
-            // Always start the pattern from the retracted position
-            retract().await;
-        }
-
-        if !MotionControl::is_move_in_progress() && motion_state.motion_enabled {
-            // Apply the delay from the previous move before executing the next one
-            Timer::after_millis(pattern_move.delay_ms).await;
-
-            let input = PatternInput {
-                velocity: motion_state.velocity,
-                depth: motion_state.depth,
-                motion_length: motion_state.motion_length,
-                sensation: motion_state.sensation,
-            };
-
-            // A move with all the constraints met
-            pattern_move = pattern_executor.next_move(&input);
-
-            if pattern_move.velocity != prev_pattern_move.velocity {
-                MotionControl::set_max_velocity(pattern_move.velocity);
-            }
-            if pattern_move.torque != prev_pattern_move.torque {
-                MotionControl::set_torque(pattern_move.torque);
-            }
-            MotionControl::set_target_position(pattern_move.position);
-
-            prev_pattern_move = pattern_move;
-        } else {
-            ticker.next().await;
-        }
-
-        prev_motion_enabled = motion_state.motion_enabled;
-    }
+    ossm_motion::motion::run_motion().await;
 }

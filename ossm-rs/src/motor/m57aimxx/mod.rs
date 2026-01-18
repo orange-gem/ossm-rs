@@ -1,4 +1,6 @@
-use defmt::{debug, error};
+pub mod config;
+
+use log::{debug, error};
 use embedded_io::Write;
 use enum_iterator::Sequence;
 use esp_hal::{
@@ -21,7 +23,7 @@ const MAX_REG_READ_AT_ONCE: usize = 8;
 
 pub const MAX_MOTOR_SPEED_RPM: u16 = 3000;
 
-#[derive(Clone, Copy, defmt::Format, PartialEq, Sequence)]
+#[derive(Debug, Clone, Copy, PartialEq, Sequence)]
 #[repr(u16)]
 pub enum ReadWriteMotorRegisters {
     ModbusEnable = 0x00,
@@ -43,7 +45,7 @@ pub enum ReadWriteMotorRegisters {
     SpecificFunction = 0x19,
 }
 
-#[derive(Clone, Copy, defmt::Format, PartialEq, Sequence)]
+#[derive(Debug, Clone, Copy, PartialEq, Sequence)]
 #[repr(u16)]
 pub enum ReadOnlyMotorRegisters {
     TargetPositionLowU16 = 0x0C,
@@ -94,7 +96,7 @@ impl MotorBaudRate {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, defmt::Format)]
+#[derive(Debug)]
 pub enum MotorError {
     Rs485Error(RxError),
     Timeout,
@@ -117,12 +119,12 @@ fn calc_crc16(frame: &[u8], data_length: u8) -> u16 {
     crc
 }
 
-pub struct Motor {
+pub struct Motor57AIMxx {
     rs485: Uart<'static, Blocking>,
     timer: AnyTimer<'static>,
 }
 
-impl Motor {
+impl Motor57AIMxx {
     pub fn new(rs485: Uart<'static, Blocking>, timer: AnyTimer<'static>) -> Self {
         Self { rs485, timer }
     }
@@ -232,7 +234,7 @@ impl Motor {
             .generate_get_holdings(reg.addr(), count, &mut request)
             .expect("Failed to generate reg read request");
 
-        debug!("Req {:x}", request);
+        debug!("Req {:x?}", request);
         self.rs485
             .write_all(&request)
             .expect("Failed to write the request bytes to RS485");
@@ -292,7 +294,7 @@ impl Motor {
 
         if response[0..2] != [0x1, 0x7b] {
             error!(
-                "Incorrect response to a 0x7b command: {:x}",
+                "Incorrect response to a 0x7b command: {:x?}",
                 &response[0..8]
             );
         }
@@ -438,5 +440,25 @@ impl Motor {
     /// Home automatically
     pub fn home(&mut self) -> Result<(), MotorError> {
         self.write_register(&ReadWriteMotorRegisters::SpecificFunction, 1)
+    }
+}
+
+impl ossm_motion::motion_control::motor::Motor for Motor57AIMxx {
+    type MotorError = MotorError;
+
+    fn min_consecutive_write_delay() -> ossm_motion::motion_control::timer::Duration {
+        ossm_motion::motion_control::timer::Duration::micros(MOTOR_CONSECUTIVE_READ_DELAY_US)
+    }
+
+    fn set_absolute_position(&mut self, steps: i32) -> Result<(), Self::MotorError> {
+        self.set_absolute_position(steps)
+    }
+
+    fn set_max_allowed_output(&mut self, torque: u16) -> Result<(), MotorError> {
+        self.set_max_allowed_output(torque)
+    }
+
+    fn delay(&mut self, duration: ossm_motion::motion_control::timer::Duration) {
+        self.delay(Duration::from_micros(duration.to_micros()));
     }
 }

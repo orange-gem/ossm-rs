@@ -6,7 +6,7 @@ mod teasingpounding;
 mod torque;
 
 use deeper::Deeper;
-use defmt::error;
+use log::error;
 use halfhalf::HalfHalf;
 use heapless::String;
 use simple::Simple;
@@ -14,7 +14,10 @@ use stopngo::StopNGo;
 use teasingpounding::TeasingPounding;
 use torque::Torque;
 
-use crate::{config::MIN_MOVE_MM, remote::ble::MAX_PATTERN_LENGTH, utils::saturate_range};
+use crate::{
+    config::{MAX_PATTERN_LENGTH, MIN_MOVE_MM},
+    utils::saturate_range,
+};
 use core::fmt::Write;
 
 pub const MIN_SENSATION: f64 = -100.0;

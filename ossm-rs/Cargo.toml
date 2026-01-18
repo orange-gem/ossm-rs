@@ -5,47 +5,46 @@ rust-version = "1.86"
 version = "0.1.0"
 
 [dependencies]
-defmt = "1.0.1"
-esp-bootloader-esp-idf = { git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
+ossm-motion = { path = "../ossm-motion" }
+log = "0.4.29"
+
+esp-bootloader-esp-idf = { features = [
+    "log-04",
+], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 esp-hal = { features = [
-    "defmt",
+    "log-04",
     "unstable",
 ], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 
 esp-rtos = { features = [
     "embassy",
-    "defmt",
+    "log-04",
 ], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 esp-radio = { features = [
     "ble",
-    "defmt",
+    "log-04",
     "esp-now",
     "unstable",
     "wifi",
 ], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
-embedded-io = { version = "0.6.1", features = ["defmt-03"] }
-embedded-io-async = { version = "0.6.1", features = ["defmt-03"] }
-esp-alloc = { features = [
-    "defmt",
-], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
+embedded-io = "0.6.1"
+embedded-io-async = "0.6.1"
+esp-alloc = { git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 esp-backtrace = { features = [
     "println",
     "panic-handler",
 ], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 esp-println = { features = [
-    "defmt-espflash",
+    "log-04",
 ], git = "https://github.com/orange-gem/esp-hal.git", rev = "e5fed5a" }
 critical-section = "1.2.0"
-embassy-executor = { version = "0.9.1", features = ["defmt"] }
-embassy-time = { version = "0.5.0", features = ["defmt"] }
+embassy-executor = { version = "0.9.1", features = ["log"] }
+embassy-time = { version = "0.5.0", features = ["log"] }
 embassy-futures = "0.1.2"
 embassy-sync = "0.7.2"
 static_cell = "2.1.1"
 bt-hci = "0.6.0"
-trouble-host = { version = "0.5.1", features = [
-    "defmt",
-    "default-packet-pool-mtu-255",
-] }
+trouble-host = { version = "0.5.1", features = ["default-packet-pool-mtu-255"] }
 
 heapless = "0.9.2"
 zerocopy = { version = "0.8.31", features = ["derive"] }
@@ -55,16 +54,11 @@ portable-atomic = { version = "1.11.1", default-features = false, features = [
 num-traits = { version = "0.2.19", default-features = false, features = [
     "libm",
 ] }
-enum_dispatch = "0.3.13"
 
 rmodbus = { version = "0.12.2", default-features = false, features = [
     "heapless",
 ] }
 enum-iterator = "2.3.0"
-rsruckig = { default-features = false, features = [
-    "libm",
-    "alloc",
-], git = "https://github.com/petrikosk/rsruckig.git" }
 
 [build-dependencies]
 vergen-gitcl = { version = "1.0.8", features = [] }

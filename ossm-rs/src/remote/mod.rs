@@ -1,9 +1,8 @@
 use embassy_time::{Duration, Ticker};
 
-use crate::{
-    motion::motion_state::set_motion_enabled,
-    remote::{ble::is_ble_connected, esp_now::is_m5_connected},
-};
+use ossm_motion::motion::motion_state::set_motion_enabled;
+
+use crate::remote::{ble::is_ble_connected, esp_now::is_m5_connected};
 
 pub mod ble;
 pub mod esp_now;

@@ -1,6 +1,6 @@
 use core::sync::atomic::{AtomicBool, Ordering};
 
-use defmt::{error, info, Format};
+use log::{error, info};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Instant, Ticker};
 use esp_radio::esp_now::{
@@ -9,12 +9,11 @@ use esp_radio::esp_now::{
 use portable_atomic::AtomicU64;
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
 
-use crate::{
-    config::{MAX_NO_REMOTE_HEARTBEAT_MS, MAX_TRAVEL_MM, MOTION_CONTROL_MAX_VELOCITY},
-    motion::motion_state::{
-        set_motion_depth_mm, set_motion_enabled, set_motion_length_mm, set_motion_pattern,
-        set_motion_sensation_neg_pos_100, set_motion_velocity_mm_s,
-    },
+use crate::config::{MAX_NO_REMOTE_HEARTBEAT_MS, MAX_TRAVEL_MM, MOTION_CONTROL_MAX_VELOCITY};
+
+use ossm_motion::motion::motion_state::{
+    set_motion_depth_mm, set_motion_enabled, set_motion_length_mm, set_motion_pattern,
+    set_motion_sensation_neg_pos_100, set_motion_velocity_mm_s,
 };
 
 const OSSM_ID: i32 = 1;
@@ -23,7 +22,7 @@ const M5_ID: i32 = 99;
 static LAST_HEARTBEAT: AtomicU64 = AtomicU64::new(0);
 static CONNECTED: AtomicBool = AtomicBool::new(false);
 
-#[derive(Default, Format, TryFromBytes, IntoBytes, Immutable)]
+#[derive(Default, Debug, TryFromBytes, IntoBytes, Immutable)]
 #[repr(i32)]
 // The commands are not constructed
 #[allow(dead_code)]
@@ -53,7 +52,7 @@ enum M5Command {
     Heartbeat = 99,
 }
 
-#[derive(Default, Format, TryFromBytes, IntoBytes, Immutable, KnownLayout)]
+#[derive(Default, Debug, TryFromBytes, IntoBytes, Immutable, KnownLayout)]
 #[repr(C)]
 struct M5Packet {
     speed: f32,
@@ -114,7 +113,7 @@ pub async fn m5_task(
             Err(err) => {
                 error!(
                     "Failed to parse the M5 Packet {:?}",
-                    defmt::Debug2Format(&err)
+                    err
                 );
                 continue;
             }
@@ -122,7 +121,7 @@ pub async fn m5_task(
 
         if let M5Command::Heartbeat = packet.command {
         } else {
-            info!("M5 Packet {}", packet);
+            info!("M5 Packet {:?}", packet);
         }
 
         match packet.command {
@@ -192,7 +191,7 @@ pub async fn m5_task(
                 encrypt: false,
             };
             manager.add_peer(peer).unwrap();
-            info!("Added new peer {}", r.info.src_address);
+            info!("Added new peer {:?}", r.info.src_address);
 
             // Signal that we are paired
             send_heartbeat_packet(sender, &peer).await;
