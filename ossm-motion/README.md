@@ -1,4 +1,4 @@
-# OSSM-Motion
+# OSSM-RS Motion
 
 This crate contains the core OSSM-RS motion control code
 
@@ -37,6 +37,7 @@ This crate contains the core OSSM-RS motion control code
 ## How To
 
 Using for custom development:
+
 - Implement the `Motor` and `Timer` traits
 - Create an instance of `MotionControl` and call the `update_handler()` function every `MOTION_CONTROL_LOOP_UPDATE_INTERVAL_MS` ms (main control loop)
 - Run the forever running async `run_motion()` task in a thread (runs the pattern executor)

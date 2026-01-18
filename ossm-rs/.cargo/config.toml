@@ -14,7 +14,11 @@ rustflags = [
 
 # Uncomment for rust-analyzer
 # [build]
+
+# For ESP32S3:
 # target = "xtensa-esp32s3-none-elf"
+
+# For ESP32C6:
 # target = "riscv32imac-unknown-none-elf"
 
 [env]
