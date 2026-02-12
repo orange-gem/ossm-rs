@@ -122,79 +122,79 @@ pub async fn m5_task(
 
         if let M5Command::Heartbeat = packet.command {
         } else {
-            info!("M5 Packet {}", packet);
+            info!("{}", packet);
         }
 
-        if packet.target == OSSM_ID
-            && !manager.peer_exists(&r.info.src_address)
-        {
-            let peer = PeerInfo {
-                interface: esp_radio::esp_now::EspNowWifiInterface::Sta,
-                peer_address: r.info.src_address,
-                lmk: None,
-                channel: None,
-                encrypt: false,
-            };
-            manager.add_peer(peer).unwrap();
-            info!("Added new peer {}", r.info.src_address);
-
-            // Signal that we are paired
-            send_heartbeat_packet(sender, &peer).await;
-        }
-
-        match packet.command {
-            M5Command::On => {
-                let packet = M5Packet {
-                    target: M5_ID,
-                    command: M5Command::On,
-                    ..Default::default()
+        if packet.target == OSSM_ID {
+            if !manager.peer_exists(&r.info.src_address) {
+                let peer = PeerInfo {
+                    interface: esp_radio::esp_now::EspNowWifiInterface::Sta,
+                    peer_address: r.info.src_address,
+                    lmk: None,
+                    channel: None,
+                    encrypt: false,
                 };
-                let peer = manager
-                    .fetch_peer(true)
-                    .expect("Peer not found even though packet received");
-                let mut sender = sender.lock().await;
-                sender
-                    .send_async(&peer.peer_address, packet.as_bytes())
-                    .await
-                    .expect("Could not send ON packet");
-                set_motion_enabled(true);
+                manager.add_peer(peer).unwrap();
+                info!("Added new peer {}", r.info.src_address);
+
+                // Signal that we are paired
+                send_heartbeat_packet(sender, &peer).await;
             }
-            M5Command::Off => {
-                let packet = M5Packet {
-                    target: M5_ID,
-                    command: M5Command::Off,
-                    ..Default::default()
-                };
-                let peer = manager
-                    .fetch_peer(true)
-                    .expect("Peer not found even though packet received");
-                let mut sender = sender.lock().await;
-                sender
-                    .send_async(&peer.peer_address, packet.as_bytes())
-                    .await
-                    .expect("Could not send OFF packet");
-                set_motion_enabled(false);
+
+            match packet.command {
+                M5Command::On => {
+                    let packet = M5Packet {
+                        target: M5_ID,
+                        command: M5Command::On,
+                        ..Default::default()
+                    };
+                    let peer = manager
+                        .fetch_peer(true)
+                        .expect("Peer not found even though packet received");
+                    let mut sender = sender.lock().await;
+                    sender
+                        .send_async(&peer.peer_address, packet.as_bytes())
+                        .await
+                        .expect("Could not send ON packet");
+                    set_motion_enabled(true);
+                }
+                M5Command::Off => {
+                    let packet = M5Packet {
+                        target: M5_ID,
+                        command: M5Command::Off,
+                        ..Default::default()
+                    };
+                    let peer = manager
+                        .fetch_peer(true)
+                        .expect("Peer not found even though packet received");
+                    let mut sender = sender.lock().await;
+                    sender
+                        .send_async(&peer.peer_address, packet.as_bytes())
+                        .await
+                        .expect("Could not send OFF packet");
+                    set_motion_enabled(false);
+                }
+                M5Command::Speed => {
+                    set_motion_velocity_mm_s(packet.value as u32);
+                }
+                M5Command::Depth => {
+                    set_motion_depth_mm(packet.value as u32);
+                }
+                M5Command::Stroke => {
+                    set_motion_length_mm(packet.value as u32);
+                }
+                M5Command::Sensation => {
+                    set_motion_sensation_neg_pos_100(packet.value as i32);
+                }
+                M5Command::Pattern => {
+                    set_motion_pattern(packet.value as u32);
+                }
+                M5Command::Heartbeat => {
+                    let now = Instant::now().as_millis();
+                    LAST_HEARTBEAT.store(now, Ordering::Release);
+                }
+                _ => {}
             }
-            M5Command::Speed => {
-                set_motion_velocity_mm_s(packet.value as u32);
-            }
-            M5Command::Depth => {
-                set_motion_depth_mm(packet.value as u32);
-            }
-            M5Command::Stroke => {
-                set_motion_length_mm(packet.value as u32);
-            }
-            M5Command::Sensation => {
-                set_motion_sensation_neg_pos_100(packet.value as i32);
-            }
-            M5Command::Pattern => {
-                set_motion_pattern(packet.value as u32);
-            }
-            M5Command::Heartbeat => {
-                let now = Instant::now().as_millis();
-                LAST_HEARTBEAT.store(now, Ordering::Release);
-            }
-            _ => {}
         }
     }
 }
