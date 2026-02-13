@@ -184,7 +184,7 @@ pub async fn m5_task(
             && !manager.peer_exists(&r.info.src_address)
         {
             let peer = PeerInfo {
-                interface: esp_radio::esp_now::EspNowWifiInterface::Sta,
+                interface: esp_radio::esp_now::EspNowWifiInterface::Station,
                 peer_address: r.info.src_address,
                 lmk: None,
                 channel: None,

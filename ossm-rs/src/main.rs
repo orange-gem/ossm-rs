@@ -50,7 +50,6 @@ use esp_hal::{
 use esp_radio::{
     ble::controller::BleConnector,
     esp_now::{EspNowManager, EspNowSender},
-    Controller,
 };
 use esp_rtos::embassy::InterruptExecutor;
 use static_cell::StaticCell;
@@ -185,7 +184,7 @@ async fn main(spawner: Spawner) {
 
     esp_rtos::start(
         systimer.alarm0,
-        #[cfg(target_arch = "riscv32")]
+        // #[cfg(target_arch = "riscv32")]
         sw_int.software_interrupt0,
     );
 
@@ -298,8 +297,6 @@ async fn main(spawner: Spawner) {
     #[cfg(feature = "multicore")]
     esp_rtos::start_second_core(
         peripherals.CPU_CTRL,
-        #[cfg(target_arch = "xtensa")]
-        sw_int.software_interrupt0,
         sw_int.software_interrupt1,
         app_core_stack,
         second_core_function,
@@ -312,18 +309,13 @@ async fn main(spawner: Spawner) {
 
     Timer::after(Duration::from_millis(1000)).await;
 
-    let radio = &*mk_static!(
-        Controller<'static>,
-        esp_radio::init().expect("Failed to initialize WIFI/BLE controller")
-    );
-
     let wifi = peripherals.WIFI;
     let (mut wifi_controller, interfaces) =
-        esp_radio::wifi::new(radio, wifi, Default::default()).unwrap();
+        esp_radio::wifi::new(wifi, Default::default()).unwrap();
     wifi_controller
-        .set_mode(esp_radio::wifi::WifiMode::Sta)
+        .set_mode(esp_radio::wifi::WifiMode::Station)
         .unwrap();
-    wifi_controller.start().unwrap();
+    wifi_controller.start_async().await.unwrap();
 
     let esp_now = interfaces.esp_now;
     info!("esp-now version {}", esp_now.version().unwrap());
@@ -336,7 +328,7 @@ async fn main(spawner: Spawner) {
     );
 
     let bluetooth = peripherals.BT;
-    let connector = BleConnector::new(radio, bluetooth, Default::default());
+    let connector = BleConnector::new(bluetooth, Default::default()).unwrap();
     let bt_controller: ExternalController<_, 20> = ExternalController::new(connector);
 
     let resources = mk_static!(HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX>, HostResources::new());

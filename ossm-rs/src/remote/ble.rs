@@ -81,7 +81,7 @@ pub async fn ble_events_task(
                     .await
                     .expect("Could not set 2M PHY");
 
-                let connect_params = ConnectParams {
+                let connect_params = RequestedConnParams {
                     min_connection_interval: Duration::from_micros(7500),
                     max_connection_interval: Duration::from_micros(7500),
                     ..Default::default()
