@@ -6,7 +6,7 @@ use std::{
 };
 
 const PROJECT_NAME: &str = "ossm-rs";
-const BOARDS: [&str; 7] = [
+const BOARDS: [&str; 8] = [
     "waveshare",
     "seeed_xiao_s3",
     "atom_s3",
@@ -14,6 +14,7 @@ const BOARDS: [&str; 7] = [
     "custom_s3",
     "custom_c6",
     "ossm_alt_v2",
+    "ossm_alt_v3",
 ];
 const BINARIES_OUTPUT_DIR: &str = "release_binaries";
 
@@ -34,6 +35,7 @@ impl FromStr for Board {
             | x @ "seeed_xiao_s3"
             | x @ "atom_s3"
             | x @ "ossm_v3"
+            | x @ "ossm_alt_v3"
             | x @ "custom_s3" => (x, Mcu::Esp32S3),
             x @ "custom_c6" | x @ "ossm_alt_v2" => (x, Mcu::Esp32C6),
             x => Err(format!("Invalid board: {}", x))?,
@@ -41,7 +43,7 @@ impl FromStr for Board {
 
         let flash_mb = match s {
             "waveshare" | "ossm_v3" => 16,
-            "seeed_xiao_s3" | "atom_s3" | "custom_s3" => 8,
+            "seeed_xiao_s3" | "atom_s3" | "custom_s3" | "ossm_alt_v3" => 8,
             "custom_c6" | "ossm_alt_v2" => 4,
             x => Err(format!("Invalid board: {}", x))?,
         };
