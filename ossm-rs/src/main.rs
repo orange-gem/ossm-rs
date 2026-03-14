@@ -94,90 +94,67 @@ async fn main(spawner: Spawner) {
 
     // Dummy board to avoid LSP complaints
     #[cfg(not(feature = "board_selected"))]
-    let pins = {
-        Pins {
-            rs485_rx: peripherals.GPIO35.degrade(),
-            rs485_tx: peripherals.GPIO37.degrade(),
-            rs485_transmit_enable: None,
-            rs485_receive_enable_inv: None,
-        }
-    };
+    let pins = Pins::new(peripherals.GPIO35.degrade(), peripherals.GPIO37.degrade());
 
     #[cfg(feature = "board_waveshare")]
     let pins = {
         info!("Board: WaveShare");
-        Pins {
-            rs485_rx: peripherals.GPIO18.degrade(),
-            rs485_tx: peripherals.GPIO17.degrade(),
-            rs485_transmit_enable: Some(peripherals.GPIO21.degrade()),
-            rs485_receive_enable_inv: None,
-        }
+        Pins::new(peripherals.GPIO18.degrade(), peripherals.GPIO17.degrade())
+            .with_rs485_transmit_enable(peripherals.GPIO21.degrade())
     };
 
     #[cfg(feature = "board_ossm_v3")]
     let pins = {
         info!("Board: OSSM v3");
-        Pins {
-            rs485_rx: peripherals.GPIO16.degrade(),
-            rs485_tx: peripherals.GPIO6.degrade(),
-            rs485_transmit_enable: Some(peripherals.GPIO7.degrade()),
-            rs485_receive_enable_inv: Some(peripherals.GPIO15.degrade()),
-        }
+        Pins::new(peripherals.GPIO16.degrade(), peripherals.GPIO6.degrade())
+            .with_rs485_transmit_enable(peripherals.GPIO7.degrade())
+            .with_rs485_receive_enable_inv(peripherals.GPIO15.degrade())
     };
 
     #[cfg(feature = "board_seeed_xiao_s3")]
     let pins = {
         info!("Board: Seed Xiao S3");
-        Pins {
-            rs485_rx: peripherals.GPIO6.degrade(),
-            rs485_tx: peripherals.GPIO5.degrade(),
-            rs485_transmit_enable: Some(peripherals.GPIO3.degrade()),
-            rs485_receive_enable_inv: None,
-        }
+        Pins::new(peripherals.GPIO6.degrade(), peripherals.GPIO5.degrade())
+            .with_rs485_transmit_enable(peripherals.GPIO3.degrade())
     };
 
     #[cfg(feature = "board_atom_s3")]
     let pins = {
         info!("Board: Atom S3");
-        Pins {
-            rs485_rx: peripherals.GPIO5.degrade(),
-            rs485_tx: peripherals.GPIO6.degrade(),
-            rs485_transmit_enable: Some(peripherals.GPIO7.degrade()),
-            rs485_receive_enable_inv: None,
-        }
+        Pins::new(peripherals.GPIO5.degrade(), peripherals.GPIO6.degrade())
+            .with_rs485_transmit_enable(peripherals.GPIO7.degrade())
     };
 
     #[cfg(feature = "board_ossm_alt_v2")]
     let pins = {
         info!("Board: OSSM Alt Edition v2");
-        Pins {
-            rs485_rx: peripherals.GPIO22.degrade(),
-            rs485_tx: peripherals.GPIO20.degrade(),
-            rs485_transmit_enable: Some(peripherals.GPIO21.degrade()),
-            rs485_receive_enable_inv: None,
-        }
+        Pins::new(peripherals.GPIO22.degrade(), peripherals.GPIO20.degrade())
+            .with_rs485_transmit_enable(peripherals.GPIO21.degrade())
+            .with_i2c_sda(peripherals.GPIO18.degrade())
+            .with_i2c_scl(peripherals.GPIO19.degrade())
+    };
+
+    #[cfg(feature = "board_ossm_alt_v3")]
+    let pins = {
+        info!("Board: OSSM Alt Edition v3");
+        Pins::new(peripherals.GPIO12.degrade(), peripherals.GPIO10.degrade())
+            .with_rs485_transmit_enable(peripherals.GPIO11.degrade())
+            .with_i2c_sda(peripherals.GPIO8.degrade())
+            .with_i2c_scl(peripherals.GPIO9.degrade())
     };
 
     #[cfg(feature = "board_custom_s3")]
     let pins = {
         info!("Board: Custom S3");
-        Pins {
-            rs485_rx: peripherals.GPIO35.degrade(),
-            rs485_tx: peripherals.GPIO37.degrade(),
-            rs485_transmit_enable: Some(peripherals.GPIO36.degrade()),
-            rs485_receive_enable_inv: None,
-        }
+        Pins::new(peripherals.GPIO35.degrade(), peripherals.GPIO37.degrade())
+            .with_rs485_transmit_enable(peripherals.GPIO36.degrade())
     };
 
     #[cfg(feature = "board_custom_c6")]
     let pins = {
         info!("Board: Custom C6");
-        Pins {
-            rs485_rx: peripherals.GPIO22.degrade(),
-            rs485_tx: peripherals.GPIO20.degrade(),
-            rs485_transmit_enable: Some(peripherals.GPIO21.degrade()),
-            rs485_receive_enable_inv: None,
-        }
+        Pins::new(peripherals.GPIO22.degrade(), peripherals.GPIO20.degrade())
+            .with_rs485_transmit_enable(peripherals.GPIO21.degrade())
     };
 
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
@@ -228,6 +205,17 @@ async fn main(spawner: Spawner) {
                 .modify(|_, w| w.rs485_en().set_bit().dl1_en().set_bit());
             #[cfg(feature = "esp32c6")]
             regs.reg_update().modify(|_, w| w.reg_update().set_bit());
+        }
+
+        if let (Some(i2c_sda), Some(i2c_scl)) = (pins.i2c_sda, pins.i2c_scl) {
+            let config = i2c::master::Config::default().with_frequency(Rate::from_khz(400));
+            let i2c = I2c::new(peripherals.I2C0, config)
+                .expect("Failed to initialise i2c")
+                .with_sda(i2c_sda)
+                .with_scl(i2c_scl);
+
+            #[cfg(feature = "board_ossm_alt_v3")]
+            board::ossm_alt_v3::init(i2c.into());
         }
 
         let timg0 = TimerGroup::new(peripherals.TIMG0);
