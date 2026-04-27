@@ -8,15 +8,15 @@ board_name: `waveshare`
 
 ![WaveShare ESP32-S3-RS485-CAN](images/ESP32-S3-RS485-CAN.webp)
 
-### OSSM Alt PCB v2
+### OSSM Alt PCB v3
 
-board_name: `ossm_alt_v2`
+board_name: `ossm_alt_v3`
 
-A cheap and compact C6 board with 28V USB-PD
+A capabable board with 28V USB-PD.
 
 The project can be found [here](https://github.com/jollydodo/OSSM-ALT-Edition)
 
-![OSSM Alt PCB v2](images/OSSM-Alt-PCB-V2.webp)
+![OSSM Alt PCB v3](images/OSSM-Alt-PCB-V3.webp)
 
 ## Alright Boards
 
@@ -39,6 +39,16 @@ board_name: `ossm_v3`
 The not yet released board from [here](https://github.com/KinkyMakers/OSSM-hardware/tree/xpi/PCB-v3/Hardware/PCB%20Files/OSSM%20Reference%20PCB%20V3)
 
 ![OSSM Reference PCB v3](images/OSSM-Reference-PCB-v3.webp)
+
+### OSSM Alt PCB v2 (Deprecated)
+
+board_name: `ossm_alt_v2`
+
+A cheap and compact C6 board with 28V USB-PD (Version 2 was never widely released. Please make sure you look at the correct board for the pin out (the polarities have changed!).
+
+The project can be found [here](https://github.com/jollydodo/OSSM-ALT-Edition)
+
+![OSSM Alt PCB v2](images/OSSM-Alt-PCB-V2.webp)
 
 ## Not Recommended Boards
 
