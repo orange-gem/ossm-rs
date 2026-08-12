@@ -76,10 +76,11 @@ pub async fn ble_events_task(
             Ok(connection) => {
                 Timer::after_millis(100).await;
 
-                connection
-                    .set_phy(stack, PhyKind::Le2M)
-                    .await
-                    .expect("Could not set 2M PHY");
+                // Try to set 2M PHY for better performance, but fall back to 1M if unsupported
+                // (e.g., Bluetooth 4.2 devices like ESP32 don't support LE 2M PHY)
+                if let Err(e) = connection.set_phy(stack, PhyKind::Le2M).await {
+                    info!("Could not set 2M PHY ({:?}), continuing with 1M PHY", e);
+                }
 
                 let connect_params = ConnectParams {
                     min_connection_interval: Duration::from_micros(7500),
